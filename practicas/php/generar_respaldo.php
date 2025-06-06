@@ -1,0 +1,32 @@
+<?php
+$host = "localhost";
+$user = "root";
+$pass = ""; 
+$db = "veterinaria";
+
+$backupFile = "C:\\xampp\\htdocs\\practicas\\php\\veterinaria.sql";
+
+// Ruta completa a mysqldump (asegúrate de que esta ruta sea correcta en tu instalación de XAMPP)
+$mysqldumpPath = "C:\\xampp\\mysql\\bin\\mysqldump";
+$lastBackupFile = "C:\\xampp\\htdocs\\practicas\\php\\ultimo_respaldo.txt";
+
+// Intervalo de tiempo entre respaldos (en segundos, 86400 segundos = 24 horas)
+$intervalo = 86400;
+
+// Verificar si se debe generar un respaldo (si han pasado más de 24 horas desde el último)
+if (!file_exists($lastBackupFile) || time() - file_get_contents($lastBackupFile) > $intervalo) {
+    file_put_contents($lastBackupFile, time());
+
+    $command = "\"$mysqldumpPath\" -h $host -u $user $db > \"$backupFile\"";
+    exec($command, $output, $result);
+    if ($result === 0) {
+        echo "El respaldo se ha generado correctamente en: $backupFile";
+    } else {
+        echo "Hubo un error al generar el respaldo. Código de error: $result<br>";
+        echo "Salida del comando: " . implode("\n", $output);
+    }
+    echo "<br>Comando ejecutado: $command";
+} else {
+    echo "No se ha generado un respaldo porque aún no ha pasado el intervalo de 24 horas.";
+}
+?>

@@ -1,0 +1,62 @@
+/* Contenedor general */
+.contenedor {
+    display: flex; /* Alinear tarjeta y historial en fila */
+    gap: 20px; /* Espacio entre elementos */
+    margin: 20px;
+}
+
+/* Tarjeta de presentación */
+.tarjeta {
+    flex: 2; /* Ocupa más espacio */
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+}
+
+/* Historial de visitas */
+.historial {
+    flex: 1; /* Ocupa menos espacio */
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+}
+
+/* Botones de acción dentro de la tarjeta */
+.button-container {
+    margin-top: 20px;
+}
+
+.button-container button, 
+.button-container a {
+    margin-right: 10px;
+}
+
+/* Estilo para la lista de historial */
+#lista-historial {
+    list-style-type: none; /* Eliminar los puntos de la lista */
+    padding: 0;
+    margin: 0;
+}
+
+#lista-historial li {
+    margin-bottom: 20px; /* Aumentar el espacio entre las visitas */
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd; /* Separación entre las descripciones */
+}
+
+#lista-historial li div {
+    margin-left: 20px; /* Indentar las descripciones */
+    white-space: pre-line; /* Permite los saltos de línea dentro de la descripción */
+    word-wrap: break-word; /* Permite que las palabras largas se dividan y no desborden */
+}
+
+/* Diseño responsivo */
+@media (max-width: 768px) {
+    .contenedor {
+        flex-direction: column; /* Apila los elementos en pantallas pequeñas */
+    }
+}

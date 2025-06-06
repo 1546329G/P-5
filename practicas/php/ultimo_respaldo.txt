@@ -1,0 +1,6 @@
+INSERT INTO `clientes` VALUES
+(1,'asdsadsa','4567','4343','sdfgh','sasdasd','2024-11-17','Aves','dscdscdc','masculino','dscdscdcdscdcddc','2024-12-05','0000-00-00','ssssssssssssssssssssssssssssssss (Fecha: 2024-12-01)\r\n'),
+(2,'CDSCDSC','32222222','3333333333333333','SDC','CDSCDSC','2024-12-06','otros','CDSCDSCD','femenino','DSCDSC','2024-12-13','0000-00-00','SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS (Fecha: 2024-12-19)\r\n'),}(3,'CDSCDSC','32222222','33333333','ana','CDSCDSC','2024-12-06','otros','CDSCDSCD','femenino','DSCDSC','2024-12-13','0000-00-00',''),
+(4,'CDSCDSC','32222222','333333','sofia','CDSCDSC','2024-12-06','otros','CDSCDSCD','femenino','DSCDSC','2024-12-13','0000-00-00','');
+/*!40000 ALTER TABLE `clientes` ENABLE KEYS */;
+UNLOCK TABLES;

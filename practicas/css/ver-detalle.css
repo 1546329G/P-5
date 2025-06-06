@@ -1,0 +1,175 @@
+/* Estilos generales */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+
+h2 {
+    text-align: center;
+    color: #4CAF50;
+    margin-bottom: 20px;
+}
+
+h3 {
+    color: #4CAF50;
+    margin-top: 20px;
+}
+
+/* Estilo de la tarjeta de detalles del propietario */
+.tarjeta {
+    max-width: 900px;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilo de los detalles del propietario */
+.tarjeta p {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.tarjeta p strong {
+    color: #4CAF50;
+}
+
+/* Botones de acción */
+button {
+    background-color: #008CBA;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 10px;
+    text-align: center;
+}
+
+button:hover {
+    background-color: #007B9E;
+}
+
+/* Enlaces de descarga */
+a {
+    background-color: #4CAF50;
+    color: white;
+    padding: 8px 16px;
+    text-decoration: none;
+    border-radius: 4px;
+    margin: 10px 0;
+    display: inline-block;
+}
+
+a:hover {
+    background-color: #45a049;
+}
+
+/* Formulario de edición */
+#form-editar {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f1f1f1;
+    border-radius: 8px;
+}
+
+#form-editar input {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#form-editar button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#form-editar button:hover {
+    background-color: #45a049;
+}
+
+/* Estilo para el cuadro de mascotas */
+.cuadro-mascotas {
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.cuadro-mascotas ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.cuadro-mascotas li {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.cuadro-mascotas li button {
+    background-color: #008CBA;
+    color: white;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.cuadro-mascotas li button:hover {
+    background-color: #007B9E;
+}
+
+.cuadro-mascotas p {
+    font-size: 16px;
+    color: #888;
+}
+
+/* Estilo para mensajes */
+p {
+    font-size: 14px;
+    color: #555;
+    margin-top: 10px;
+}
+
+.mensaje {
+    padding: 15px;
+    background-color: #ffcccb;
+    color: #f44336;
+    border-radius: 5px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.volver {
+    margin: 20px;
+    text-align: center;
+}
+.btn-volver {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+}
+.btn-volver:hover {
+    background-color: #45a049;
+}
+
+

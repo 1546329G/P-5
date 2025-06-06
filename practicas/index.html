@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Login</title>
+    <link rel="shortcut icon" href="img/favicon2.ico" type="image/x-icon"> 
+    <link rel="stylesheet"type="text/css" href="css2/styleindex.css">
+    
+</head>
+<body>
+  
+    <div class="login-wrapper">
+        <div class="exchange-box">
+
+            <div class="container1" id="nurse">
+                <img src="img/dr.jpg" alt="">
+            </div><br>
+          
+          <div class="title">Bienvenido </div>
+          
+          <!-- Cambiamos el form para que use método POST y tenga un action -->
+          <form id="loginForm" method="POST" action="php/procesar_login2.php">
+            <label for="username">Ingrese su Nombre</label>
+            <input type="text" id="username" name="username" placeholder="Nombre completo" required />
+    
+            <label for="password">Ingrese su Contraseña</label>
+            <input type="password" id="password" name="password" placeholder="Contraseña" required />
+    
+            <div class="start-button">
+                <button type="submit" id="iniciar">Iniciar</button>
+            </div>
+            
+            <!-- Mensaje de error para mostrar si hay fallo en la autenticación -->
+            <div id="error-message" style="color: red; margin-top: 10px; text-align: center; display: none;">
+                Usuario o contraseña incorrectos
+            </div>
+          </form>
+          
+          <div class="footer-text"></div>
+        </div>
+      </div>
+
+    <script>
+        // Verificar si hay un mensaje de error en la URL (redirección desde procesar_login.php)
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            
+            if (error === '1') {
+                document.getElementById('error-message').style.display = 'block';
+            }
+        }
+        
+        // Podemos mantener esto para validación del lado del cliente
+        document.getElementById('loginForm').addEventListener('submit', function(event) {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                event.preventDefault();
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('error-message').textContent = 'Por favor, complete todos los campos';
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+</body>
+</html>
+
+
+
+
