@@ -77,9 +77,9 @@
     <!-- Contenedor para sexos (derecha) -->
     <div class="sexos-container">
     <label><b>Sexo:</b></label><br><br>
-        <input type="radio" name="sexo" id="macho" value="hombre" required>
+        <input type="radio" name="sexo" id="macho" value="masculino" required>
         <label for="macho">Hombre</label><br><br>
-        <input type="radio" name="sexo" id="hembra" value="mujer">
+        <input type="radio" name="sexo" id="hembra"   value="femenino" required>
         <label for="hembra">Mujer</label>
 
 

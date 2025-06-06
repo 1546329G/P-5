@@ -10,8 +10,14 @@
     <div class="container">
         <?php
         // Conexión a la base de datos
-        $conn = new mysqli("localhost", "root", "", "veterinaria");
-
+       $dbHost = "srv805.hstgr.io"; // Host proporcionado por Hostinger
+$dbUser = "u666383048_clinica"; // Usuario de la base de datos
+$dbPass = "9~o0jY:Xw"; // Contraseña del usuario
+$dbName = "u666383048_clinica"; // Nombre de la base de datos
+$dbPort = 3306; // Puerto de la base de datos (generalmente 3306 para MySQL)
+$conn = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+// Establecer conexión con la base de datos
+// Se incluye el puerto como un parámetro adicional en mysqli
         if ($conn->connect_error) {
             die("<div class='message error'>Conexión fallida: " . $conn->connect_error . "</div>");
         }
@@ -32,7 +38,7 @@
         $fechaSeguimientoInicio = $_POST['fechaSeguimientoInicio'];
         $descripcion = $_POST['descripcion'];
 
-        if ($sexo != 'hombre' && $sexo != 'mujer') {
+        if ($sexo != 'masculino' && $sexo != 'femenino') {
             echo "<div class='message error'>Valor de sexo no válido. Solo se permiten 'masculino' o 'femenino'.</div>";
             exit;
         }
@@ -72,17 +78,17 @@
             }
         } else {
             // Registrar un nuevo cliente y su mascota
-            $stmt_cliente = $conn->prepare("INSERT INTO clientes (doctor, direccion, telefono, dni, nombre, fechaNacimiento, nacionalidad, diagnostico, sexo, especialidad, fechaSeguimientoInicio)
+            $stmt_cliente = $conn->prepare("INSERT INTO clientes (doctor, direccion, telefono, dni, nombre, fechaNacimiento, nacionalidad, diagnostico, sexo, especialidad, fechaSeguimientoInicio, descripcion )
                                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt_cliente->bind_param("sssssssssss", $propietario, $direccion, $telefono, $dni, $paciente, $fechaNacimiento, $especie, $raza, $sexo, $color, $fechaSeguimientoInicio);
+            $stmt_cliente->bind_param("sssssssssss", $propietario, $direccion, $telefono, $dni, $paciente, $fechaNacimiento, $especie, $raza, $sexo, $color, $fechaSeguimientoInicio, $descripcion );
 
             if ($stmt_cliente->execute()) {
                 $cliente_id = $conn->insert_id;
 
                 // Insertar la mascota para el nuevo cliente
-                $stmt_mascota = $conn->prepare("INSERT INTO mascotas (nombre, nacionalidad, diagnostico, sexo, especialidad, fechaNacimiento, propietario_id)
+                $stmt_mascota = $conn->prepare("INSERT INTO mascotas (nombre, nacionalidad, diagnostico, sexo, especialidad, fechaNacimiento, propietario_id, descripcion )
                                                 VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt_mascota->bind_param("ssssssi", $paciente, $especie, $raza, $sexo, $color, $fechaNacimiento, $cliente_id);
+                $stmt_mascota->bind_param("ssssssi", $paciente, $especie, $raza, $sexo, $color, $fechaNacimiento, $cliente_id, $descripcion);
 
                 if ($stmt_mascota->execute()) {
                     $mascota_id = $conn->insert_id; // Obtener el ID de la mascota insertada
