@@ -1,1 +1,0 @@
-<?php echo htmlspecialchars($_SESSION['usuario']);?> 
