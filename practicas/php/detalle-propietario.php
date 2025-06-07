@@ -64,33 +64,66 @@ if ($result_historial->num_rows > 0) {
 ** Sección 2: Editar datos de Clientes y Mascotas
 */
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Editar datos de cliente
     if (isset($_POST['editar_cliente'])) {
-        $nuevo_nombre = $_POST['propietario'];
+        // Recolectar valores del formulario
+        $nuevo_nombre = $_POST['nombre'];
         $nueva_direccion = $_POST['direccion'];
         $nuevo_telefono = $_POST['telefono'];
         $nuevo_dni = $_POST['dni'];
-        $nueva_fecha_inicio = $_POST['fechaSeguimientoInicio'];
+        $nuevo_doctor = $_POST['doctor'];
+        $nueva_fechaNacimiento = $_POST['fechaNacimiento'];
+        $nueva_nacionalidad = $_POST['nacionalidad'];
+        $nuevo_diagnostico = $_POST['diagnostico'];
+        $nuevo_sexo = $_POST['sexo'];
+        $nueva_especialidad = $_POST['especialidad'];
+        $nueva_fechaSeguimientoInicio = $_POST['fechaSeguimientoInicio'];
+        $nueva_descripcion = $_POST['descripcion'];
 
-        $sql_editar = "UPDATE clientes SET propietario = ?, direccion = ?, telefono = ?, dni = ?, fechaSeguimientoInicio = ? WHERE id = ?";
+        // Actualizar en la base de datos
+        $sql_editar = "UPDATE clientes SET
+            nombre = ?,
+            direccion = ?,
+            telefono = ?,
+            dni = ?,
+            doctor = ?,
+            fechaNacimiento = ?,
+            nacionalidad = ?,
+            diagnostico = ?,
+            sexo = ?,
+            especialidad = ?,
+            fechaSeguimientoInicio = ?,
+            descripcion = ?
+            WHERE id = ?";
+
         $stmt_editar = $conn->prepare($sql_editar);
-        $stmt_editar->bind_param("sssssi", $nuevo_nombre, $nueva_direccion, $nuevo_telefono, $nuevo_dni, $nueva_fecha_inicio, $id);
+        $stmt_editar->bind_param("ssssssssssssi",
+            $nuevo_nombre,
+            $nueva_direccion,
+            $nuevo_telefono,
+            $nuevo_dni,
+            $nuevo_doctor,
+            $nueva_fechaNacimiento,
+            $nueva_nacionalidad,
+            $nuevo_diagnostico,
+            $nuevo_sexo,
+            $nueva_especialidad,
+            $nueva_fechaSeguimientoInicio,
+            $nueva_descripcion,
+            $id
+        );
 
         if ($stmt_editar->execute()) {
-            $mensaje = "Datos del propietario actualizados correctamente.";
-            // Volver a cargar los datos actualizados
-            $row['propietario'] = $nuevo_nombre;
-            $row['direccion'] = $nueva_direccion;
-            $row['telefono'] = $nuevo_telefono;
-            $row['dni'] = $nuevo_dni;
-            $row['fechaSeguimientoInicio'] = $nueva_fecha_inicio;
+            $mensaje = "Datos del cliente actualizados correctamente.";
+            // Refrescar datos en $row si es necesario
         } else {
-            $mensaje = "Error al actualizar los datos del propietario.";
+            $mensaje = "Error al actualizar los datos del cliente: " . $stmt_editar->error;
         }
     }
+}
+
 
     // Editar o insertar mascota con verificación de duplicados
-    if (isset($_POST['editar_mascota'])) {
+    /*if (isset($_POST['editar_mascota'])) {
         $nuevo_nombre = $_POST['nombre'];
         $nueva_especie = $_POST['especie'];
         $nueva_raza = $_POST['raza'];
@@ -139,9 +172,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             } else {
                 $mensaje_mascota = "Error al registrar la mascota.";
             }
-        }
-    }
-}
+
+    }*/
+
 
 /*
 ** Sección 3: Registrar y Consultar Historial de Visitas de las Mascotas
@@ -213,19 +246,28 @@ $conn->close();*/
     <!-- Tarjeta de Presentación -->
     <div id="tarjeta" class="tarjeta">
         <h2>Detalles del Propietario</h2>
-        <!-- Información del propietario y mascota -->
-        <?php if (isset($mensaje)) { echo "<p>$mensaje</p>"; } ?>
-        <p><strong>ID:</strong> <?php echo $row['id']; ?></p>
-        <p><strong>Propietario:</strong> <?php echo $row['propietario']; ?></p>
-        <p><strong>Dirección:</strong> <?php echo $row['direccion']; ?></p>
-        <p><strong>Teléfono:</strong> <?php echo $row['telefono']; ?></p>
-        <p><strong>DNI:</strong> <?php echo $row['dni']; ?></p>
-        <p><strong>Fecha de registro:</strong> <?php echo $row['fechaSeguimientoInicio']; ?></p>
+       
+      <?php if (isset($mensaje)) { echo "<p>$mensaje</p>"; } ?>
+
+<p><strong>ID:</strong> <?php echo $row['id']; ?></p>
+<p><strong>Nombre del paciente:</strong> <?php echo $row['nombre']; ?></p>
+<p><strong>Dirección:</strong> <?php echo $row['direccion']; ?></p>
+<p><strong>Teléfono:</strong> <?php echo $row['telefono']; ?></p>
+<p><strong>DNI:</strong> <?php echo $row['dni']; ?></p>
+<p><strong>Doctor:</strong> <?php echo $row['doctor']; ?></p>
+<p><strong>Fecha de nacimiento:</strong> <?php echo $row['fechaNacimiento']; ?></p>
+<p><strong>Nacionalidad:</strong> <?php echo $row['nacionalidad']; ?></p>
+<p><strong>Diagnóstico:</strong> <?php echo $row['diagnostico']; ?></p>
+<p><strong>Sexo:</strong> <?php echo $row['sexo']; ?></p>
+<p><strong>Especialidad:</strong> <?php echo $row['especialidad']; ?></p>
+<p><strong>Fecha de seguimiento:</strong> <?php echo $row['fechaSeguimientoInicio']; ?></p>
+<p><strong>Descripción:</strong> <?php echo $row['descripcion']; ?></p>
+
 
         <!-- Detalles de la Mascota -->
-        <?php if ($mascota_detalles): ?>
+     <!--   <?php if ($mascota_detalles): ?>
         <div id="detalles-mascota" class="detalles-mascota">
-            <h3>Detalles de la Mascota</h3>
+            <h3>Detalles del</h3>
             <p><strong>Nombre:</strong> <?php echo $mascota_detalles['nombre']; ?></p>
             <p><strong>Especie:</strong> <?php echo $mascota_detalles['especie']; ?></p>
             <p><strong>Raza:</strong> <?php echo $mascota_detalles['raza']; ?></p>
@@ -234,7 +276,7 @@ $conn->close();*/
             <p><strong>Fecha de Nacimiento:</strong> <?php echo $mascota_detalles['fechaNacimiento']; ?></p>
            <p><strong> descripcion: <?php echo isset($descripcion) ? htmlspecialchars($descripcion) : 'historial no disponible.';?></strong></p>
         </div>
-        <?php endif; ?>
+        <?php endif; ?>-->
         
         <!-- Botones de acción -->
         <div class="button-container">
@@ -248,7 +290,8 @@ $conn->close();*/
     <div id="historial" class="historial">
     <h3>Historial de Visitas</h3>
     <ul id="lista-historial">
-        <li>No hay historial disponible.</li>
+       <!-- <li>No hay historial disponible.</li>-->
+        <p><strong>Descripción:</strong> <?php echo $row['descripcion']; ?></p>
     </ul>
 </div>
 
@@ -357,23 +400,39 @@ $conn->close();*/
 </div>
     
     <div id="form-editar" style="display:none;">
-    <h3>Editar Propietario</h3>
-    <form method="POST">
-    <label for="propietario">Propietario:</label>
-    <input type="text" id="propietario" name="propietario" value="<?php echo isset($row['propietario']) ? $row['propietario'] : ''; ?>" required>
+  <h3>Editar Cliente</h3>
+<form method="POST">
+    <label for="nombre">Nombre del paciente:</label>
+    <input type="text" id="nombre" name="nombre" value="<?php echo isset($row['nombre']) ? $row['nombre'] : ''; ?>" required>
     <label for="direccion">Dirección:</label>
     <input type="text" id="direccion" name="direccion" value="<?php echo isset($row['direccion']) ? $row['direccion'] : ''; ?>" required>
     <label for="telefono">Teléfono:</label>
     <input type="text" id="telefono" name="telefono" value="<?php echo isset($row['telefono']) ? $row['telefono'] : ''; ?>" required>
     <label for="dni">DNI:</label>
     <input type="text" id="dni" name="dni" value="<?php echo isset($row['dni']) ? $row['dni'] : ''; ?>" required>
-
-    <label for="fechaSeguimientoInicio">Fecha de registro:</label>
+    <label for="doctor">Doctor:</label>
+    <input type="text" id="doctor" name="doctor" value="<?php echo isset($row['doctor']) ? $row['doctor'] : ''; ?>" required>
+    <label for="fechaNacimiento">Fecha de Nacimiento:</label>
+    <input type="date" id="fechaNacimiento" name="fechaNacimiento" value="<?php echo isset($row['fechaNacimiento']) ? $row['fechaNacimiento'] : ''; ?>" required>
+    <label for="nacionalidad">Nacionalidad:</label>
+    <input type="text" id="nacionalidad" name="nacionalidad" value="<?php echo isset($row['nacionalidad']) ? $row['nacionalidad'] : ''; ?>" required>
+    <label for="diagnostico">Diagnóstico:</label>
+    <input type="text" id="diagnostico" name="diagnostico" value="<?php echo isset($row['diagnostico']) ? $row['diagnostico'] : ''; ?>" required>
+    <label for="sexo">Sexo:</label>
+    <select id="sexo" name="sexo" required>
+        <option value="masculino" <?php echo (isset($row['sexo']) && $row['sexo'] == 'masculino') ? 'selected' : ''; ?>>Masculino</option>
+        <option value="femenino" <?php echo (isset($row['sexo']) && $row['sexo'] == 'femenino') ? 'selected' : ''; ?>>Femenino</option>
+    </select>
+    <label for="especialidad">Especialidad:</label>
+    <input type="text" id="especialidad" name="especialidad" value="<?php echo isset($row['especialidad']) ? $row['especialidad'] : ''; ?>" required>
+    <label for="fechaSeguimientoInicio">Fecha de Registro / Seguimiento:</label>
     <input type="date" id="fechaSeguimientoInicio" name="fechaSeguimientoInicio" value="<?php echo isset($row['fechaSeguimientoInicio']) ? $row['fechaSeguimientoInicio'] : ''; ?>" required>
-
+    <label for="descripcion">Descripción:</label>
+    <textarea id="descripcion" name="descripcion" required><?php echo isset($row['descripcion']) ? $row['descripcion'] : ''; ?></textarea>
     <button type="submit" name="editar_cliente">Guardar Cambios</button>
 </form>
-<h3>Editar Mascota</h3>
+
+<!--<h3>Editar Mascota</h3>
 <form method="POST">
     <label for="nombre">Nombre:</label>
     <input type="text" id="nombre" name="nombre" value="<?php echo isset($mascota_detalles['nombre']) ? $mascota_detalles['nombre'] : ''; ?>" required>
@@ -403,7 +462,7 @@ $conn->close();*/
     <input type="date" id="fechaNacimiento" name="fechaNacimiento" value="<?php echo isset($mascota_detalles['fechaNacimiento']) ? $mascota_detalles['fechaNacimiento'] : ''; ?>" required>
     
     <button type="submit" name="editar_mascota">Guardar Cambios</button>
-</form>
+</form>-->
 
 
 </div>
@@ -415,7 +474,7 @@ $conn->close();*/
                 const imagen = canvas.toDataURL("image/png");
                 const enlace = document.createElement("a");
                 enlace.href = imagen;
-                enlace.download = "tarjeta_presentacion.png";
+                enlace.download = "TARJETA DEL PACIENTE.png";
                 enlace.click();
             });
         }
@@ -424,13 +483,13 @@ $conn->close();*/
 </div>
 
 <div class="cuadro-mascotas">
-    <h3>Otras Mascotas del Propietario</h3>
+    <h3>OTRAS CONSULTAS DEL PACIENTE</h3>
     <?php if ($result_mascotas->num_rows > 0): ?>
         <ul>
             <?php while ($mascota = $result_mascotas->fetch_assoc()): ?>
                 <li>
                     <strong>Nombre:</strong> <?php echo $mascota['nombre']; ?>, 
-                    <strong>Especie:</strong> <?php echo $mascota['especie']; ?>, 
+                 <!--   <strong>Especie:</strong> <?php echo $mascota['especie']; ?>, -->
                     <a href="detalle-propietario.php?id=<?php echo $id; ?>&mascota_id=<?php echo $mascota['id']; ?>"><button>Más información</button></a>
                 </li>
             <?php endwhile; ?>

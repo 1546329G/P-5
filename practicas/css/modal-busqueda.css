@@ -1,0 +1,56 @@
+  /* Estilos básicos para el modal */
+  #modal {
+    display: none; /* Oculto inicialmente */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    border: 1px solid #ccc;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+#modal-overlay {
+    display: none; /* Oculto inicialmente */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+/* En tu archivo CSS, probablemente ventanasss.css o a.css */
+
+.close-btn {
+    color: #aaa;
+    float: right;
+    font-size: 50px; /* Aumenta el tamaño de la X */
+    font-weight: bold;
+    cursor: pointer;
+    position: absolute; /* Asegúrate de que tenga position: absolute */
+    top: 10px; /* Ajusta la posición desde arriba */
+    right: 15px; /* Ajusta la posición desde la derecha */
+    padding: 5px 10px; /* Añade un padding para hacer el área clickable más grande */
+    background-color: transparent; /* O un color de fondo si quieres que sea un botón visible */
+    border-radius: 50%; /* Opcional: para hacerlo circular */
+    transition: 0.3s; /* Transición suave al pasar el mouse */
+}
+
+.close-btn:hover,
+.close-btn:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+    background-color: #f2f2f2; /* Color de fondo al pasar el mouse */
+}
+
+/* Asegúrate de que el modal tenga position: relative para que la X se posicione correctamente */
+#modal {
+    position: fixed; /* O absolute, dependiendo de tu diseño */
+    /* ... otras propiedades del modal ... */
+    padding-top: 40px; /* Ajusta el padding-top del modal para que la X no lo tape */
+}

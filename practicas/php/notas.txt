@@ -1,0 +1,1 @@
+git fetch origin      para traer los ultimos cambios de el repositorio o de una rama

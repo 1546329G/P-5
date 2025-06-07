@@ -16,7 +16,7 @@ if (!isset($_SESSION['autenticado']) || $_SESSION['autenticado'] !== true) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css2/ventanasss.css">
-    <link rel="stylesheet" href="../css/a.css">
+    <link rel="stylesheet" href="../css/modal-busqueda.css">
     <link rel="stylesheet" href="../css/paginador.css">
     <link rel="icon" href="../img/favicon2.ico" type="image/x-icon">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
@@ -67,10 +67,15 @@ if (!isset($_SESSION['autenticado']) || $_SESSION['autenticado'] !== true) {
     </div>
 </div>
 
+
+
 <div class="search" id="searchSection" style="display: none; margin-top: 20px;">
-    <input type="text" id="cliente_id" placeholder="ID del cliente">
-    <button type="button" onclick="buscarPaciente()">Buscar</button>
+<input type="text" id="busqueda" placeholder="ID o Nombre del cliente">
+<button type="button" onclick="buscarPaciente()">Buscar</button>
+
 </div>
+
+
 
 <!-- Modal -->
 <div id="modal-overlay" style="display: none;"></div>
@@ -116,50 +121,72 @@ document.addEventListener("DOMContentLoaded", function() {
 function mostrarBusqueda() {
     document.getElementById('searchSection').style.display = 'block';
 }
-
 function buscarPaciente() {
-    const cliente_id = document.getElementById('cliente_id').value;
+    const input = document.getElementById('busqueda').value.trim();
     const modal = document.getElementById('modal');
     const modalContent = document.getElementById('modal-content');
     const overlay = document.getElementById('modal-overlay');
 
-    if (cliente_id.trim() === '') {
-        alert('Por favor, ingresa un ID de cliente.');
+    if (input === '') {
+        alert('Por favor, ingresa un ID o nombre del cliente.');
         return;
     }
+
     const xhr = new XMLHttpRequest();
     xhr.open('POST', 'buscar-paciente.php', true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+    // Determinar si es número o texto
+    let parametros = '';
+    if (!isNaN(input)) {
+        parametros = 'cliente_id=' + encodeURIComponent(input);
+    } else {
+        parametros = 'nombre=' + encodeURIComponent(input);
+    }
+
+    parametros += '&pagina=1';
+
     xhr.onload = function () {
         if (xhr.status === 200) {
-            modalContent.innerHTML = xhr.responseText; // Cargar contenido dinámico
+            modalContent.innerHTML = xhr.responseText;
             modal.style.display = 'block';
             overlay.style.display = 'block';
         } else {
             modalContent.innerHTML = '<p style="color: red;">Error al buscar el cliente.</p>';
         }
     };
-    xhr.send('cliente_id=' + encodeURIComponent(cliente_id) + '&pagina=1');
+    xhr.send(parametros);
 }
+
 
 function cerrarModal() {
     document.getElementById('modal').style.display = 'none';
     document.getElementById('modal-overlay').style.display = 'none';
 }
-
 function cargarPagina(pagina) {
-    const cliente_id = document.getElementById('cliente_id').value;
+    const input = document.getElementById('busqueda').value.trim();
     const modalContent = document.getElementById('modal-content');
     const xhr = new XMLHttpRequest();
     xhr.open('POST', 'buscar-paciente.php', true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+    let parametros = '';
+    if (!isNaN(input)) {
+        parametros = 'cliente_id=' + encodeURIComponent(input);
+    } else {
+        parametros = 'nombre=' + encodeURIComponent(input);
+    }
+
+    parametros += '&pagina=' + pagina;
+
     xhr.onload = function () {
         if (xhr.status === 200) {
             modalContent.innerHTML = xhr.responseText;
         }
     };
-    xhr.send('cliente_id=' + encodeURIComponent(cliente_id) + '&pagina=' + pagina);
+    xhr.send(parametros);
 }
+
 </script>
 
 </body>

@@ -35,7 +35,7 @@ if ($cliente_id > 0) {
 
 // Filtro por nombre del propietario
 if (!empty($nombre)) {
-    $where[] = "LOWER(c.propietario) LIKE ?";
+    $where[] = "LOWER(c.nombre) LIKE ?";
     $parametros[] = "%" . strtolower($nombre) . "%"; // Convertir a minúsculas para comparación
     $tipos .= "s";
 }
@@ -52,29 +52,28 @@ $where_clause = "WHERE " . implode(" AND ", $where);
 $sql = "
     SELECT 
         c.id AS cliente_id,
-        c.propietario,
+        c.nombre,
         c.direccion,
         c.telefono,
         c.dni,
-        hv.descripcion AS historial_descripcion,
-        m.nombre AS mascota_nombre,
-        m.fechaNacimiento AS mascota_fechaNacimiento,
-        m.especie AS mascota_especie,
-        m.raza AS mascota_raza,
-        m.sexo AS mascota_sexo,
-        m.color AS mascota_color
+        c.doctor,
+        c.fechaNacimiento,
+        c.nacionalidad,
+        c.diagnostico,
+        c.sexo,
+        c.especialidad,
+        c.fechaSeguimientoInicio,
+        c.descripcion,
+        hv.descripcion AS historial_descripcion
     FROM
         clientes c
-    JOIN
-        mascotas m
-    ON
-        c.id = m.propietario_id
     LEFT JOIN
         historial_visitas hv
     ON
-        c.id = hv.cliente_id AND m.id = hv.mascota_id
+        c.id = hv.cliente_id
     $where_clause
     LIMIT ?, ?";
+
 
 // Preparar la consulta
 $stmt = $conn->prepare($sql);
@@ -98,23 +97,24 @@ if ($result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
         echo "<h2>Detalles del Cliente</h2>";
         echo "<p><strong>ID:</strong> {$row['cliente_id']}</p>";
-        echo "<p><strong>Propietario:</strong> {$row['propietario']}</p>";
+        echo "<p><strong>Nombre:</strong> {$row['nombre']}</p>";
         echo "<p><strong>Dirección:</strong> {$row['direccion']}</p>";
         echo "<p><strong>Teléfono:</strong> {$row['telefono']}</p>";
         echo "<p><strong>DNI:</strong> {$row['dni']}</p>";
-
-        echo "<h3>Detalles de la Mascota</h3>";
-        echo "<p><strong>Nombre:</strong> {$row['mascota_nombre']}</p>";
-        echo "<p><strong>Fecha de Nacimiento:</strong> {$row['mascota_fechaNacimiento']}</p>";
-        echo "<p><strong>Especie:</strong> {$row['mascota_especie']}</p>";
-        echo "<p><strong>Raza:</strong> {$row['mascota_raza']}</p>";
-        echo "<p><strong>Sexo:</strong> {$row['mascota_sexo']}</p>";
-        echo "<p><strong>Color:</strong> {$row['mascota_color']}</p>";
-        echo "<p><strong>Descripción del historial:</strong> " . ($row['historial_descripcion'] ?: 'Sin descripción') . "</p>";
+        echo "<p><strong>Doctor:</strong> {$row['doctor']}</p>";
+        echo "<p><strong>Fecha de Nacimiento:</strong> {$row['fechaNacimiento']}</p>";
+        echo "<p><strong>Nacionalidad:</strong> {$row['nacionalidad']}</p>";
+        echo "<p><strong>Diagnóstico:</strong> {$row['diagnostico']}</p>";
+        echo "<p><strong>Sexo:</strong> {$row['sexo']}</p>";
+        echo "<p><strong>Especialidad:</strong> {$row['especialidad']}</p>";
+        echo "<p><strong>Fecha de seguimiento:</strong> {$row['fechaSeguimientoInicio']}</p>";
+        echo "<p><strong>Descripción:</strong> {$row['descripcion']}</p>";
+        echo "<p><strong>Descripción del historial:</strong> " . ($row['descripcion'] ?: 'Sin descripción') . "</p>";
     }
 } else {
-    echo "<p>No se encontraron resultados para los criterios de búsqueda.</p>";
+    echo "<p>No se encontraron resultados.</p>";
 }
+
 
 // Obtener el total de registros para la paginación
 $sqlTotal = "SELECT COUNT(*) AS total FROM clientes c JOIN mascotas m ON c.id = m.propietario_id $where_clause";
