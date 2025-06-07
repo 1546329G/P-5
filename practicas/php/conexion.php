@@ -64,8 +64,8 @@ $conn = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
 
                 // Insertar la descripción en la tabla historial_visitas
                 $fecha_visita = date("Y-m-d"); // O usa la fecha que desees
-                $stmt_historial = $conn->prepare("INSERT INTO historial_visitas (cliente_id, mascota_id, descripcion, fecha_visita)
-                                                  VALUES (?, ?, ?, ?)");
+                $stmt_historial = $conn->prepare("INSERT INTO historial_visitas (cliente_id, mascota_id, fecha_visita)
+                                                  VALUES (?, ?, ?)");
                 $stmt_historial->bind_param("iiss", $cliente_id, $mascota_id, $descripcion, $fecha_visita);
 
                 if ($stmt_historial->execute()) {
@@ -78,17 +78,18 @@ $conn = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
             }
         } else {
             // Registrar un nuevo cliente y su mascota
-            $stmt_cliente = $conn->prepare("INSERT INTO clientes (doctor, direccion, telefono, dni, nombre, fechaNacimiento, nacionalidad, diagnostico, sexo, especialidad, fechaSeguimientoInicio, descripcion )
-                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt_cliente->bind_param("sssssssssss", $propietario, $direccion, $telefono, $dni, $paciente, $fechaNacimiento, $especie, $raza, $sexo, $color, $fechaSeguimientoInicio, $descripcion );
+           $stmt_cliente = $conn->prepare("INSERT INTO clientes (doctor, direccion, telefono, dni, nombre, fechaNacimiento, nacionalidad, diagnostico, sexo, especialidad, fechaSeguimientoInicio, descripcion )
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+//                                                                          ^ ¡Agregado un '?' aquí!
+            $stmt_cliente->bind_param("ssssssssssss", $propietario, $direccion, $telefono, $dni, $paciente, $fechaNacimiento, $especie, $raza, $sexo, $color, $fechaSeguimientoInicio, $descripcion );
 
             if ($stmt_cliente->execute()) {
                 $cliente_id = $conn->insert_id;
 
                 // Insertar la mascota para el nuevo cliente
-                $stmt_mascota = $conn->prepare("INSERT INTO mascotas (nombre, nacionalidad, diagnostico, sexo, especialidad, fechaNacimiento, propietario_id, descripcion )
+                $stmt_mascota = $conn->prepare("INSERT INTO mascotas (nombre, nacionalidad, diagnostico, sexo, especialidad, fechaNacimiento, propietario_id)
                                                 VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt_mascota->bind_param("ssssssi", $paciente, $especie, $raza, $sexo, $color, $fechaNacimiento, $cliente_id, $descripcion);
+                $stmt_mascota->bind_param("ssssssi", $paciente, $especie, $raza, $sexo, $color, $fechaNacimiento, $cliente_id);
 
                 if ($stmt_mascota->execute()) {
                     $mascota_id = $conn->insert_id; // Obtener el ID de la mascota insertada
