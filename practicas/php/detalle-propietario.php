@@ -6,66 +6,73 @@ $dbName = "u666383048_clinica"; // Nombre de la base de datos
 $dbPort = 3306; // Puerto de la base de datos (generalmente 3306 para MySQL)
 
 // Establecer conexión con la base de datos
-// Se incluye el puerto como un parámetro adicional en mysqli
 $conn = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
 if ($conn->connect_error) {
     die("Conexión fallida: " . $conn->connect_error);
 }
 
-$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+// ID del cliente/paciente principal
+$cliente_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+// ID de la "mascota" (que ahora representa una consulta/episodio de enfermedad)
 $mascota_id = isset($_GET['mascota_id']) ? intval($_GET['mascota_id']) : 0;
 
-/*
-** Sección 1: Visualizar Información de Clientes y Mascotas
-*/
-$sql = "SELECT * FROM clientes WHERE id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$result = $stmt->get_result();
+// Variables para manejar mensajes
+$mensaje_cliente = "";
+$mensaje_mascota = ""; // Mensaje para operaciones con la tabla mascotas
 
-if ($result->num_rows > 0) {
-    $row = $result->fetch_assoc();  // Almacenamos los datos del cliente
+/*Sección 1: Visualizar Información de Clientes (Pacientes)*/
+
+$sql_cliente = "SELECT * FROM clientes WHERE id = ?";
+$stmt_cliente = $conn->prepare($sql_cliente);
+if ($stmt_cliente === false) {
+    die("Error en la preparación de la consulta de clientes: " . $conn->error);
+}
+$stmt_cliente->bind_param("i", $cliente_id);
+$stmt_cliente->execute();
+$result_cliente = $stmt_cliente->get_result();
+
+if ($result_cliente->num_rows > 0) {
+    $cliente_data = $result_cliente->fetch_assoc(); // Datos del cliente principal
 } else {
-    die("No se encontró el propietario.");
+    die("No se encontró el paciente.");
+}
+$stmt_cliente->close();
+/* Sección 2: Obtener "OTRAS CONSULTAS DEL PACIENTE" (Entradas de la tabla 'mascotas')
+*/
+$result_mascotas_paciente = null; // Inicializar a null
+
+$sql_mascotas = "SELECT * FROM mascotas WHERE propietario_id = ? ORDER BY id DESC";
+$stmt_mascotas = $conn->prepare($sql_mascotas);
+if ($stmt_mascotas === false) {
+    error_log("Error en la preparación de la consulta de mascotas: " . $conn->error);
+} else {
+    $stmt_mascotas->bind_param("i", $cliente_id);
+    $stmt_mascotas->execute();
+    $result_mascotas_paciente = $stmt_mascotas->get_result();
+    $stmt_mascotas->close();
 }
 
-$sql_mascotas = "SELECT * FROM mascotas WHERE propietario_id = ?";
-$stmt_mascotas = $conn->prepare($sql_mascotas);
-$stmt_mascotas->bind_param("i", $id);
-$stmt_mascotas->execute();
-$result_mascotas = $stmt_mascotas->get_result();
-
+/* Sección 3: Obtener detalles de una "MASCOTA" ESPECÍFICA (para VER/EDITAR en modal)*/
 $mascota_detalles = null;
 if ($mascota_id > 0) {
-    $sql_mascota = "SELECT * FROM mascotas WHERE id = ?";
-    $stmt_mascota = $conn->prepare($sql_mascota);
-    $stmt_mascota->bind_param("i", $mascota_id);
-    $stmt_mascota->execute();
-    $result_mascota = $stmt_mascota->get_result();
-    if ($result_mascota->num_rows > 0) {
-        $mascota_detalles = $result_mascota->fetch_assoc();
+    $sql_mascota_especifica = "SELECT * FROM mascotas WHERE id = ? AND propietario_id = ?";
+    $stmt_mascota_especifica = $conn->prepare($sql_mascota_especifica);
+    if ($stmt_mascota_especifica === false) {
+        error_log("Error en la preparación de la consulta de mascota específica: " . $conn->error);
+    } else {
+        $stmt_mascota_especifica->bind_param("ii", $mascota_id, $cliente_id);
+        $stmt_mascota_especifica->execute();
+        $result_mascota_especifica = $stmt_mascota_especifica->get_result();
+        if ($result_mascota_especifica->num_rows > 0) {
+            $mascota_detalles = $result_mascota_especifica->fetch_assoc();
+        }
+        $stmt_mascota_especifica->close();
     }
 }
-
-$sql_historial = "SELECT descripcion, fecha_visita FROM historial_visitas WHERE mascota_id = ? ORDER BY fecha_visita DESC";
-$stmt_historial = $conn->prepare($sql_historial);
-$stmt_historial->bind_param("i", $mascota_id);
-$stmt_historial->execute();
-$result_historial = $stmt_historial->get_result();
-
-if ($result_historial->num_rows > 0) {
-    $descripcion = $result_historial->fetch_assoc()['descripcion'];
-} else {
-    $descripcion = "Sin descripción registrada";  // Valor por defecto
-}
-
-/*
-** Sección 2: Editar datos de Clientes y Mascotas
-*/
+/* Sección 4: Procesar Formularios POST*/
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['editar_cliente'])) {
-        // Recolectar valores del formulario
+    // --- Editar Cliente Principal ---
+    if (isset($_POST['editar_cliente_principal'])) {
         $nuevo_nombre = $_POST['nombre'];
         $nueva_direccion = $_POST['direccion'];
         $nuevo_telefono = $_POST['telefono'];
@@ -79,434 +86,364 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $nueva_fechaSeguimientoInicio = $_POST['fechaSeguimientoInicio'];
         $nueva_descripcion = $_POST['descripcion'];
 
-        // Actualizar en la base de datos
-        $sql_editar = "UPDATE clientes SET
-            nombre = ?,
-            direccion = ?,
-            telefono = ?,
-            dni = ?,
-            doctor = ?,
-            fechaNacimiento = ?,
-            nacionalidad = ?,
-            diagnostico = ?,
-            sexo = ?,
-            especialidad = ?,
-            fechaSeguimientoInicio = ?,
-            descripcion = ?
+        $sql_update_cliente = "UPDATE clientes SET
+            nombre = ?, direccion = ?, telefono = ?, dni = ?, doctor = ?,
+            fechaNacimiento = ?, nacionalidad = ?, diagnostico = ?, sexo = ?,
+            especialidad = ?, fechaSeguimientoInicio = ?, descripcion = ?
             WHERE id = ?";
 
-        $stmt_editar = $conn->prepare($sql_editar);
-        $stmt_editar->bind_param("ssssssssssssi",
-            $nuevo_nombre,
-            $nueva_direccion,
-            $nuevo_telefono,
-            $nuevo_dni,
-            $nuevo_doctor,
-            $nueva_fechaNacimiento,
-            $nueva_nacionalidad,
-            $nuevo_diagnostico,
-            $nuevo_sexo,
-            $nueva_especialidad,
-            $nueva_fechaSeguimientoInicio,
-            $nueva_descripcion,
-            $id
+        $stmt_update_cliente = $conn->prepare($sql_update_cliente);
+        if ($stmt_update_cliente === false) {
+            die("Error al preparar la actualización del cliente: " . $conn->error);
+        }
+        $stmt_update_cliente->bind_param("ssssssssssssi",
+            $nuevo_nombre, $nueva_direccion, $nuevo_telefono, $nuevo_dni, $nuevo_doctor,
+            $nueva_fechaNacimiento, $nueva_nacionalidad, $nuevo_diagnostico, $nuevo_sexo,
+            $nueva_especialidad, $nueva_fechaSeguimientoInicio, $nueva_descripcion, $cliente_id
         );
 
-        if ($stmt_editar->execute()) {
-            $mensaje = "Datos del cliente actualizados correctamente.";
-            // Refrescar datos en $row si es necesario
+        if ($stmt_update_cliente->execute()) {
+            $mensaje_cliente = "Datos del paciente principal actualizados correctamente.";
+            // Refrescar $cliente_data para que la página muestre los datos actualizados
+            $sql_refresh_cliente = "SELECT * FROM clientes WHERE id = ?";
+            $stmt_refresh_cliente = $conn->prepare($sql_refresh_cliente);
+            $stmt_refresh_cliente->bind_param("i", $cliente_id);
+            $stmt_refresh_cliente->execute();
+            $result_refresh_cliente = $stmt_refresh_cliente->get_result();
+            if ($result_refresh_cliente->num_rows > 0) {
+                $cliente_data = $result_refresh_cliente->fetch_assoc();
+            }
+            $stmt_refresh_cliente->close();
         } else {
-            $mensaje = "Error al actualizar los datos del cliente: " . $stmt_editar->error;
+            $mensaje_cliente = "Error al actualizar los datos del paciente principal: " . $stmt_update_cliente->error;
+        }
+        $stmt_update_cliente->close();
+    }
+
+    // --- Agregar Nueva "Mascota" (Nueva Consulta/Episodio) ---
+    if (isset($_POST['agregar_mascota'])) {
+        $mascota_nombre = $_POST['mascota_nombre'];
+        $mascota_nacionalidad = $_POST['mascota_nacionalidad'];
+        $mascota_diagnostico = $_POST['mascota_diagnostico'];
+        $mascota_sexo = $_POST['mascota_sexo'];
+        $mascota_especialidad = $_POST['mascota_especialidad'];
+        $mascota_fechaNacimiento = $_POST['mascota_fechaNacimiento'];
+        $propietario_id_form = isset($_POST['propietario_id']) ? intval($_POST['propietario_id']) : 0; // Usar propietario_id
+
+        if ($propietario_id_form > 0) {
+            $sql_insert_mascota = "INSERT INTO mascotas (nombre, nacionalidad, diagnostico, sexo, especialidad, fechaNacimiento, propietario_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            $stmt_insert_mascota = $conn->prepare($sql_insert_mascota);
+            if ($stmt_insert_mascota === false) {
+                die("Error al preparar el registro de nueva mascota: " . $conn->error);
+            }
+            $stmt_insert_mascota->bind_param("ssssssi",
+                $mascota_nombre, $mascota_nacionalidad, $mascota_diagnostico, $mascota_sexo,
+                $mascota_especialidad, $mascota_fechaNacimiento, $propietario_id_form
+            );
+
+            if ($stmt_insert_mascota->execute()) {
+                $mensaje_mascota = "Nueva consulta (mascota) registrada correctamente.";
+                // Redirige para refrescar la página, evitando reenvío de formulario
+                header("Location: detalle-propietario.php?id=$propietario_id_form");
+                exit();
+            } else {
+                $mensaje_mascota = "Error al registrar la nueva consulta (mascota): " . $stmt_insert_mascota->error;
+            }
+            $stmt_insert_mascota->close();
+        } else {
+            $mensaje_mascota = "No se pudo registrar la nueva consulta: ID de paciente inválido.";
+        }
+    }
+
+    // --- Editar "Mascota" Específica (Consulta/Episodio) ---
+    if (isset($_POST['editar_mascota'])) {
+        $id_mascota_edit = isset($_POST['id_mascota_edit']) ? intval($_POST['id_mascota_edit']) : 0;
+        $propietario_id_edit = isset($_POST['propietario_id_edit']) ? intval($_POST['propietario_id_edit']) : 0; // Para asegurar la pertenencia
+
+        $mascota_nombre_edit = $_POST['mascota_nombre_edit'];
+        $mascota_nacionalidad_edit = $_POST['mascota_nacionalidad_edit'];
+        $mascota_diagnostico_edit = $_POST['mascota_diagnostico_edit'];
+        $mascota_sexo_edit = $_POST['mascota_sexo_edit'];
+        $mascota_especialidad_edit = $_POST['mascota_especialidad_edit'];
+        $mascota_fechaNacimiento_edit = $_POST['mascota_fechaNacimiento_edit'];
+
+        if ($id_mascota_edit > 0 && $propietario_id_edit == $cliente_id) { // Doble verificación para seguridad
+            $sql_update_mascota = "UPDATE mascotas SET
+                nombre = ?, nacionalidad = ?, diagnostico = ?, sexo = ?, especialidad = ?, fechaNacimiento = ?
+                WHERE id = ? AND propietario_id = ?";
+            $stmt_update_mascota = $conn->prepare($sql_update_mascota);
+            if ($stmt_update_mascota === false) {
+                die("Error al preparar la actualización de la mascota: " . $conn->error);
+            }
+            $stmt_update_mascota->bind_param("ssssssii",
+                $mascota_nombre_edit, $mascota_nacionalidad_edit, $mascota_diagnostico_edit, $mascota_sexo_edit,
+                $mascota_especialidad_edit, $mascota_fechaNacimiento_edit, $id_mascota_edit, $propietario_id_edit
+            );
+
+            if ($stmt_update_mascota->execute()) {
+                $mensaje_mascota = "Consulta (mascota) actualizada correctamente.";
+                // Redirige para refrescar la página, eliminando el parámetro mascota_id de la URL
+                header("Location: detalle-propietario.php?id=$cliente_id");
+                exit();
+            } else {
+                $mensaje_mascota = "Error al actualizar la consulta (mascota): " . $stmt_update_mascota->error;
+            }
+            $stmt_update_mascota->close();
+        } else {
+            $mensaje_mascota = "ID de consulta (mascota) inválido o no pertenece a este paciente para edición.";
         }
     }
 }
-
-
-    // Editar o insertar mascota con verificación de duplicados
-    /*if (isset($_POST['editar_mascota'])) {
-        $nuevo_nombre = $_POST['nombre'];
-        $nueva_especie = $_POST['especie'];
-        $nueva_raza = $_POST['raza'];
-        $nuevo_color = $_POST['color'];
-        $nuevo_sexo = $_POST['sexo'];
-        $nueva_fecha_nacimiento = $_POST['fechaNacimiento'];
-
-        // Verificar si ya existe una mascota con el mismo nombre y especie para este propietario
-        $sql_verificar_mascota = "SELECT * FROM mascotas WHERE nombre = ? AND especie = ? AND propietario_id = ?";
-        $stmt_verificar = $conn->prepare($sql_verificar_mascota);
-        $stmt_verificar->bind_param("ssi", $nuevo_nombre, $nueva_especie, $id);
-        $stmt_verificar->execute();
-        $result_verificar = $stmt_verificar->get_result();
-
-        if ($result_verificar->num_rows > 0) {
-            // Si ya existe, actualizamos los datos de la mascota
-            $mascota_detalles = $result_verificar->fetch_assoc();
-            $mascota_id = $mascota_detalles['id']; // Obtener el ID de la mascota existente
-            $mensaje_mascota = "La mascota ya existe, se actualizarán sus datos.";
-
-            // Actualizar los datos de la mascota existente
-            $sql_editar_mascota = "UPDATE mascotas SET nombre = ?, especie = ?, raza = ?, color = ?, sexo = ?, fechaNacimiento = ? WHERE id = ?";
-            $stmt_editar_mascota = $conn->prepare($sql_editar_mascota);
-            $stmt_editar_mascota->bind_param("ssssssi", $nuevo_nombre, $nueva_especie, $nueva_raza, $nuevo_color, $nuevo_sexo, $nueva_fecha_nacimiento, $mascota_id);
-
-            if ($stmt_editar_mascota->execute()) {
-                $mensaje_mascota = "Datos de la mascota actualizados correctamente.";
-                $mascota_detalles['nombre'] = $nuevo_nombre;
-                $mascota_detalles['especie'] = $nueva_especie;
-                $mascota_detalles['raza'] = $nueva_raza;
-                $mascota_detalles['color'] = $nuevo_color;
-                $mascota_detalles['sexo'] = $nuevo_sexo;
-                $mascota_detalles['fechaNacimiento'] = $nueva_fecha_nacimiento;
-            } else {
-                $mensaje_mascota = "Error al actualizar los datos de la mascota.";
-            }
-        } else {
-            // Si no existe, insertamos la nueva mascota
-            $sql_insertar_mascota = "INSERT INTO mascotas (nombre, especie, raza, color, sexo, fechaNacimiento, propietario_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
-            $stmt_insertar_mascota = $conn->prepare($sql_insertar_mascota);
-            $stmt_insertar_mascota->bind_param("ssssssi", $nuevo_nombre, $nueva_especie, $nueva_raza, $nuevo_color, $nuevo_sexo, $nueva_fecha_nacimiento, $id);
-
-            if ($stmt_insertar_mascota->execute()) {
-                $mascota_id = $stmt_insertar_mascota->insert_id;  // Obtener el ID de la nueva mascota insertada
-                $mensaje_mascota = "Mascota registrada correctamente.";
-            } else {
-                $mensaje_mascota = "Error al registrar la mascota.";
-            }
-
-    }*/
-
-
-/*
-** Sección 3: Registrar y Consultar Historial de Visitas de las Mascotas
-*/
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['agregar_visita'])) {
-        $descripcion_visita = $_POST['descripcion_visita'];
-        $fecha_visita = $_POST['fecha_visita'];
-
-        // Insertar historial de visita
-        $sql_visita = "INSERT INTO historial_visitas (mascota_id, descripcion, fecha_visita) VALUES (?, ?, ?)";
-        $stmt_visita = $conn->prepare($sql_visita);
-        $stmt_visita->bind_param("iss", $mascota_id, $descripcion_visita, $fecha_visita);
-
-        if ($stmt_visita->execute()) {
-            $mensaje_visita = "Visita registrada correctamente.";
-        } else {
-            $mensaje_visita = "Error al registrar la visita.";
-        }
-    }
-}
-
-
-
-/*identificacionde id de la mascota */ 
-/*
-// Obtener el ID de la mascota de la URL
-$mascota_id = isset($_GET['mascota_id']) ? intval($_GET['mascota_id']) : 0;
-
-if ($mascota_id > 0) {
-    // Consultar la información de la mascota y del cliente asociado
-    $query = "SELECT m.*, c.id AS cliente_id, c.nombre AS cliente_nombre 
-              FROM mascotas m
-              JOIN clientes c ON m.cliente_id = c.id
-              WHERE m.id = $mascota_id";
-    $result = $conn->query($query);
-
-    if ($result->num_rows > 0) {
-        $data = $result->fetch_assoc();
-        $cliente_id = $data['cliente_id'];
-        $cliente_nombre = $data['cliente_nombre'];
-        $mascota_nombre = $data['nombre'];
-    } else {
-        die("No se encontró información para la mascota seleccionada.");
-    }
-} else {
-    die("No se proporcionó un ID válido para la mascota.");
-}
-$conn->close();*/
+// Cierre de la conexión a la base de datos al final del script
+$conn->close();
 ?>
-
-
-
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalles del Propietario</title>
+    <title>Detalles del Paciente</title>
     <link rel="stylesheet" href="../css/ver-detalle.css">
     <link rel="stylesheet" href="../css/historial.css">
     <link rel="stylesheet" href="../css/historial2.0.css">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* Tu bloque de CSS para los modales va aquí... perfecto como está */
+        /* ESTILOS ADICIONALES PARA LOS NUEVOS MODALES Y AJUSTES DE Z-INDEX */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background-color: #fefefe;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.25);
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+        }
+        #mascotaModalOverlay { z-index: 1001; }
+        .modal-close-button {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+            border: none;
+            background: none;
+            transition: color 0.3s ease;
+        }
+        .modal-close-button:hover { color: #333; }
+        .modal h2 {
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 20px;
+        }
+        .modal label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        .modal input[type="text"], .modal input[type="date"], .modal select, .modal textarea {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        .modal button[type="submit"] {
+            background-color: #1976d2;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+        .modal button[type="submit"]:hover { background-color: #1565c0; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .tarjeta, .cuadro-mascotas, #form-editar-cliente-principal {
+            position: relative;
+            z-index: 1;
+        }
+        #form-editar-cliente-principal { display: none; }
+    </style>
 </head>
-<body>
+
+
 <div class="contenedor">
-    <!-- Tarjeta de Presentación -->
+
     <div id="tarjeta" class="tarjeta">
-        <h2>Detalles del Propietario</h2>
-       
-      <?php if (isset($mensaje)) { echo "<p>$mensaje</p>"; } ?>
-
-<p><strong>ID:</strong> <?php echo $row['id']; ?></p>
-<p><strong>Nombre del paciente:</strong> <?php echo $row['nombre']; ?></p>
-<p><strong>Dirección:</strong> <?php echo $row['direccion']; ?></p>
-<p><strong>Teléfono:</strong> <?php echo $row['telefono']; ?></p>
-<p><strong>DNI:</strong> <?php echo $row['dni']; ?></p>
-<p><strong>Doctor:</strong> <?php echo $row['doctor']; ?></p>
-<p><strong>Fecha de nacimiento:</strong> <?php echo $row['fechaNacimiento']; ?></p>
-<p><strong>Nacionalidad:</strong> <?php echo $row['nacionalidad']; ?></p>
-<p><strong>Diagnóstico:</strong> <?php echo $row['diagnostico']; ?></p>
-<p><strong>Sexo:</strong> <?php echo $row['sexo']; ?></p>
-<p><strong>Especialidad:</strong> <?php echo $row['especialidad']; ?></p>
-<p><strong>Fecha de seguimiento:</strong> <?php echo $row['fechaSeguimientoInicio']; ?></p>
-<p><strong>Descripción:</strong> <?php echo $row['descripcion']; ?></p>
-
-
-        <!-- Detalles de la Mascota -->
-     <!--   <?php if ($mascota_detalles): ?>
-        <div id="detalles-mascota" class="detalles-mascota">
-            <h3>Detalles del</h3>
-            <p><strong>Nombre:</strong> <?php echo $mascota_detalles['nombre']; ?></p>
-            <p><strong>Especie:</strong> <?php echo $mascota_detalles['especie']; ?></p>
-            <p><strong>Raza:</strong> <?php echo $mascota_detalles['raza']; ?></p>
-            <p><strong>Color:</strong> <?php echo $mascota_detalles['color']; ?></p>
-            <p><strong>Sexo:</strong> <?php echo $mascota_detalles['sexo']; ?></p>
-            <p><strong>Fecha de Nacimiento:</strong> <?php echo $mascota_detalles['fechaNacimiento']; ?></p>
-           <p><strong> descripcion: <?php echo isset($descripcion) ? htmlspecialchars($descripcion) : 'historial no disponible.';?></strong></p>
-        </div>
-        <?php endif; ?>-->
+        <h2>Detalles del Paciente</h2>
         
-        <!-- Botones de acción -->
+        <?php if (!empty($mensaje_cliente)) { echo "<p class='mensaje'>$mensaje_cliente</p>"; } ?>
+        <?php if (!empty($mensaje_mascota)) { echo "<p class='mensaje'>$mensaje_mascota</p>"; } ?>
+
+        <p><strong>ID:</strong> <?php echo htmlspecialchars($cliente_data['id']); ?></p>
+        <p><strong>Nombre del paciente:</strong> <?php echo htmlspecialchars($cliente_data['nombre']); ?></p>
+        <p><strong>Dirección:</strong> <?php echo htmlspecialchars($cliente_data['direccion']); ?></p>
+        <p><strong>Teléfono:</strong> <?php echo htmlspecialchars($cliente_data['telefono']); ?></p>
+        <p><strong>DNI:</strong> <?php echo htmlspecialchars($cliente_data['dni']); ?></p>
+        <p><strong>Fecha de nacimiento:</strong> <?php echo htmlspecialchars($cliente_data['fechaNacimiento']); ?></p>
+        <p><strong>Nacionalidad:</strong> <?php echo htmlspecialchars($cliente_data['nacionalidad']); ?></p>
+        <p><strong>Sexo:</strong> <?php echo htmlspecialchars($cliente_data['sexo']); ?></p>
+        <p><strong>Fecha de seguimiento:</strong> <?php echo htmlspecialchars($cliente_data['fechaSeguimientoInicio']); ?></p>
+        
         <div class="button-container">
-            <button onclick="document.getElementById('form-editar').style.display = 'block';">Editar</button>
-            <a href="descargar_pdf.php?id=<?php echo $row['id']; ?>">Descargar en PDF</a>
+            <button id="openEditPacienteModalBtn">Editar Paciente</button>
+            <a href="descargar_pdf.php?id=<?php echo htmlspecialchars($cliente_data['id']); ?>">Descargar en PDF</a>
             <button onclick="descargarTarjeta()">Descargar imagen</button>
-            <button class="open-modal-btn">Agregar Descripción</button>
+            <button class="open-add-mascota-modal-btn">Agregar Nueva Consulta</button>
         </div>
     </div>
 
-    <div id="historial" class="historial">
-    <h3>Historial de Visitas</h3>
-    <ul id="lista-historial">
-       <!-- <li>No hay historial disponible.</li>-->
-        <p><strong>Descripción:</strong> <?php echo $row['descripcion']; ?></p>
-    </ul>
+    <div class="cuadro-mascotas">
+        <h3>OTRAS CONSULTAS DEL PACIENTE</h3>
+        <?php
+        if ($result_mascotas_paciente && $result_mascotas_paciente->num_rows > 0) {
+            $result_mascotas_paciente->data_seek(0);
+        }
+        ?>
+        <?php if ($result_mascotas_paciente && $result_mascotas_paciente->num_rows > 0): ?>
+            <ul>
+                <?php while ($mascota_item = $result_mascotas_paciente->fetch_assoc()): ?>
+                    <li>
+                        <div>
+                            <strong>Nombre de la consulta:</strong> <?php echo htmlspecialchars($mascota_item['nombre']); ?>,
+                            <strong>Diagnóstico:</strong> <?php echo htmlspecialchars(substr($mascota_item['diagnostico'], 0, 70)); ?>...,
+                            <strong>Especialidad:</strong> <?php echo htmlspecialchars($mascota_item['especialidad']); ?>
+                        </div>
+                        <button onclick="openDetallesConsultaModal(<?php echo htmlspecialchars(json_encode($mascota_item)); ?>)">Más información</button>
+                    </li>
+                <?php endwhile; ?>
+            </ul>
+        <?php else: ?>
+            <p>No hay otras consultas registradas para este paciente.</p>
+        <?php endif; ?>
+    </div>
+
+    <div class="volver">
+        <a href="ventanas.php" class="btn-volver">volver a gestión de pacientes</a>
+    </div>
+
+</div> 
+<div class="modal-overlay" id="detallesConsultaModalOverlay">
+    <div class="modal">
+        <button class="modal-close-button" id="closeDetallesConsultaModalBtn">X</button>
+        <h2>Detalles de la Consulta Específica (ID paciente: <span id="detallesConsultaId"></span>)</h2>
+        <p><strong>Nombre de la consulta:</strong> <span id="detallesConsultaNombre"></span></p>
+        <p><strong>Nacionalidad:</strong> <span id="detallesConsultaNacionalidad"></span></p>
+        <p><strong>Diagnóstico:</strong> <span id="detallesConsultaDiagnostico"></span></p>
+        <p><strong>Sexo (relacionado a la consulta):</strong> <span id="detallesConsultaSexo"></span></p>
+        <p><strong>Especialidad:</strong> <span id="detallesConsultaEspecialidad"></span></p>
+        <p><strong>Fecha de Nacimiento (de la consulta):</strong> <span id="detallesConsultaFechaNacimiento"></span></p>
+        <button id="editThisMascotaButton">Editar esta consulta</button>
+    </div>
 </div>
 
-
-
-<!-- Modal -->
-<!-- Formulario Modal -->
-<!-- Modal -->
-<div class="modal-overlay" id="modalOverlay">
+<div class="modal-overlay" id="mascotaModalOverlay">
     <div class="modal">
-        <button class="close-modal-btn" id="closeModalBtn">X</button>
-        <h2>Agregar Descripción</h2>
-        <form id="addDescriptionForm">
-            <input type="hidden" id="cliente_id" name="cliente_id">
-            <input type="hidden" id="mascota_id" name="mascota_id">
-
-            <label for="fecha_visita">Fecha de la Visita:</label>
-            <input type="date" id="fecha_visita" name="fecha_visita" required>
-
-            <label for="descripcion">Descripción:</label>
-            <textarea id="descripcion" name="descripcion" rows="4" required></textarea>
-
-            <button type="submit">Guardar</button>
+        <button class="modal-close-button" id="closeMascotaModalBtn">X</button>
+        <h2 id="mascotaModalTitle"></h2>
+        <form id="mascotaForm" method="POST">
+            <input type="hidden" id="mascota_form_action_type" name="" value=""> 
+            <input type="hidden" id="mascota_id_edit" name="id_mascota_edit" value="">
+            <input type="hidden" id="mascota_propietario_id" name="propietario_id" value="<?php echo htmlspecialchars($cliente_id); ?>">
+            <input type="hidden" name="propietario_id_edit" value="<?php echo htmlspecialchars($cliente_id); ?>"> 
+            
+            <label for="mascota_nombre_input">Nombre de la consulta:</label>
+            <input type="text" id="mascota_nombre_input" name="mascota_nombre" required>
+            <label for="mascota_nacionalidad_input">Nacionalidad:</label>
+            <input type="text" id="mascota_nacionalidad_input" name="mascota_nacionalidad" required>
+            <label for="mascota_diagnostico_input">Diagnóstico:</label>
+            <input type="text" id="mascota_diagnostico_input" name="mascota_diagnostico" required>
+            <label for="mascota_sexo_input">Sexo:</label>
+            <select id="mascota_sexo_input" name="mascota_sexo" required>
+                <option value="masculino">Masculino</option>
+                <option value="femenino">Femenino</option> 
+            </select>
+            <label for="mascota_especialidad_input">Especialidad:</label>
+            <input type="text" id="mascota_especialidad_input" name="mascota_especialidad" required>
+            <label for="mascota_fechaNacimiento_input">Fecha de Nacimiento (de la consulta):</label>
+            <input type="date" id="mascota_fechaNacimiento_input" name="mascota_fechaNacimiento" required>
+            <button type="submit" id="submitMascotaModalBtn"></button>
         </form>
     </div>
 </div>
 
+<div class="modal-overlay" id="editPacientePrincipalModalOverlay">
+    <div class="modal">
+        <button class="modal-close-button" id="closeEditPacientePrincipalModalBtn">X</button>
+        <h2>Editar Paciente Principal</h2>
+        <form id="form-editar-cliente-principal" method="POST">
+             </form>
+    </div>
+</div>
+<script src="../js/detalle-propietario.js"></script>
+
 
 <script>
-    // Elementos del DOM
-    const openModalBtn = document.querySelector('.open-modal-btn');
-    const modalOverlay = document.getElementById('modalOverlay');
-    const closeModalBtn = document.getElementById('closeModalBtn');
-    const form = document.getElementById('addForm');
-    const listaHistorial = document.getElementById('lista-historial');
 
-    // Abrir el modal
-    openModalBtn.addEventListener('click', () => {
-        modalOverlay.style.display = 'flex';
+
+    // Función para descargar la tarjeta del paciente como imagen
+    function descargarTarjeta() {
+        const tarjeta = document.getElementById('tarjeta');
+        
+        html2canvas(tarjeta).then((canvas) => {
+            const imagen = canvas.toDataURL("image/png");
+            const enlace = document.createElement("a");
+            enlace.href = imagen;
+            enlace.download = "TARJETA_DEL_PACIENTE.png";
+            enlace.click();
+        });
+    }
+    // Lógica para mostrar el modal de detalles de consulta si mascota_id está en la URL
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentMascotaId = urlParams.get('mascota_id');
+        
+        <?php if ($mascota_detalles && $mascota_id > 0): ?>
+            // Si hay detalles de mascota y un ID de mascota en la URL, abrimos el modal de detalles
+            const mascotaDataFromPHP = <?php echo json_encode($mascota_detalles); ?>;
+            openDetallesConsultaModal(mascotaDataFromPHP);
+        <?php endif; ?>
     });
-
-    // Cerrar el modal
-    closeModalBtn.addEventListener('click', () => {
-        modalOverlay.style.display = 'none';
-    });
-
-    // Cerrar el modal al hacer clic fuera del formulario
-    modalOverlay.addEventListener('click', (event) => {
-        if (event.target === modalOverlay) {
-            modalOverlay.style.display = 'none';
-        }
-    });
-
-    // Manejar el formulario
-    form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-
-        // Capturar datos del formulario
-        const clienteId = document.getElementById('cliente_id').value;
-        const mascotaId = document.getElementById('mascota_id').value;
-        const fechaVisita = document.getElementById('fecha_visita').value;
-        const descripcion = document.getElementById('descripcion').value;
-
-        // Enviar datos al servidor con fetch
-        const formData = new FormData();
-        formData.append('cliente_id', clienteId);
-        formData.append('mascota_id', mascotaId);
-        formData.append('fecha_visita', fechaVisita);
-        formData.append('descripcion', descripcion);
-
-        try {
-            const response = await fetch('agregar-historial.php', {
-                method: 'POST',
-                body: formData,
-            });
-
-            const result = await response.text();
-
-            if (response.ok) {
-                alert('¡Información agregada con éxito!');
-                modalOverlay.style.display = 'none';
-                cargarHistorial(clienteId); // Actualizar historial dinámicamente
-            } else {
-                alert('Error al agregar la descripción: ' + result);
-            }
-        } catch (error) {
-            console.error('Error en la solicitud:', error);
-        }
-    });
-
-    // Función para cargar historial dinámicamente
-    async function cargarHistorial(clienteId) {
-        try {
-            const response = await fetch(`agregar-historial.php?cliente_id=${clienteId}`);
-            const historialHtml = await response.text();
-            listaHistorial.innerHTML = historialHtml;
-        } catch (error) {
-            console.error('Error al cargar el historial:', error);
-        }
+    // Modal para editar paciente principal
+    if (openEditPacienteModalBtn) {
+        openEditPacienteModalBtn.addEventListener('click', () => {
+            editPacientePrincipalModalOverlay.classList.add('active');
+        });
+    }
+    if (closeEditPacientePrincipalModalBtn) {
+        closeEditPacientePrincipalModalBtn.addEventListener('click', () => {
+            editPacientePrincipalModalOverlay.classList.remove('active');
+        });
     }
 </script>
-
-
-
-<script src="../jss"></script>
-</div>
-    
-    <div id="form-editar" style="display:none;">
-  <h3>Editar Cliente</h3>
-<form method="POST">
-    <label for="nombre">Nombre del paciente:</label>
-    <input type="text" id="nombre" name="nombre" value="<?php echo isset($row['nombre']) ? $row['nombre'] : ''; ?>" required>
-    <label for="direccion">Dirección:</label>
-    <input type="text" id="direccion" name="direccion" value="<?php echo isset($row['direccion']) ? $row['direccion'] : ''; ?>" required>
-    <label for="telefono">Teléfono:</label>
-    <input type="text" id="telefono" name="telefono" value="<?php echo isset($row['telefono']) ? $row['telefono'] : ''; ?>" required>
-    <label for="dni">DNI:</label>
-    <input type="text" id="dni" name="dni" value="<?php echo isset($row['dni']) ? $row['dni'] : ''; ?>" required>
-    <label for="doctor">Doctor:</label>
-    <input type="text" id="doctor" name="doctor" value="<?php echo isset($row['doctor']) ? $row['doctor'] : ''; ?>" required>
-    <label for="fechaNacimiento">Fecha de Nacimiento:</label>
-    <input type="date" id="fechaNacimiento" name="fechaNacimiento" value="<?php echo isset($row['fechaNacimiento']) ? $row['fechaNacimiento'] : ''; ?>" required>
-    <label for="nacionalidad">Nacionalidad:</label>
-    <input type="text" id="nacionalidad" name="nacionalidad" value="<?php echo isset($row['nacionalidad']) ? $row['nacionalidad'] : ''; ?>" required>
-    <label for="diagnostico">Diagnóstico:</label>
-    <input type="text" id="diagnostico" name="diagnostico" value="<?php echo isset($row['diagnostico']) ? $row['diagnostico'] : ''; ?>" required>
-    <label for="sexo">Sexo:</label>
-    <select id="sexo" name="sexo" required>
-        <option value="masculino" <?php echo (isset($row['sexo']) && $row['sexo'] == 'masculino') ? 'selected' : ''; ?>>Masculino</option>
-        <option value="femenino" <?php echo (isset($row['sexo']) && $row['sexo'] == 'femenino') ? 'selected' : ''; ?>>Femenino</option>
-    </select>
-    <label for="especialidad">Especialidad:</label>
-    <input type="text" id="especialidad" name="especialidad" value="<?php echo isset($row['especialidad']) ? $row['especialidad'] : ''; ?>" required>
-    <label for="fechaSeguimientoInicio">Fecha de Registro / Seguimiento:</label>
-    <input type="date" id="fechaSeguimientoInicio" name="fechaSeguimientoInicio" value="<?php echo isset($row['fechaSeguimientoInicio']) ? $row['fechaSeguimientoInicio'] : ''; ?>" required>
-    <label for="descripcion">Descripción:</label>
-    <textarea id="descripcion" name="descripcion" required><?php echo isset($row['descripcion']) ? $row['descripcion'] : ''; ?></textarea>
-    <button type="submit" name="editar_cliente">Guardar Cambios</button>
-</form>
-
-<!--<h3>Editar Mascota</h3>
-<form method="POST">
-    <label for="nombre">Nombre:</label>
-    <input type="text" id="nombre" name="nombre" value="<?php echo isset($mascota_detalles['nombre']) ? $mascota_detalles['nombre'] : ''; ?>" required>
-    
-    <label for="especie">Especie:</label>
-    <select id="especie" name="especie" required>
-        <option value="Canino" <?php echo (isset($mascota_detalles['especie']) && $mascota_detalles['especie'] == 'Canino') ? 'selected' : ''; ?>>Canino</option>
-        <option value="Felino" <?php echo (isset($mascota_detalles['especie']) && $mascota_detalles['especie'] == 'Felino') ? 'selected' : ''; ?>>Felino</option>
-        <option value="Aves" <?php echo (isset($mascota_detalles['especie']) && $mascota_detalles['especie'] == 'Aves') ? 'selected' : ''; ?>>Aves</option>
-        <option value="Lagomorfos" <?php echo (isset($mascota_detalles['especie']) && $mascota_detalles['especie'] == 'Lagomorfos') ? 'selected' : ''; ?>>Lagomorfos</option>
-        <option value="Otros" <?php echo (isset($mascota_detalles['especie']) && $mascota_detalles['especie'] == 'Otros') ? 'selected' : ''; ?>>Otros</option>
-    </select><br>
-
-    <label for="raza">Raza:</label>
-    <input type="text" id="raza" name="raza" value="<?php echo isset($mascota_detalles['raza']) ? $mascota_detalles['raza'] : ''; ?>" required>
-    
-    <label for="color">Color:</label>
-    <input type="text" id="color" name="color" value="<?php echo isset($mascota_detalles['color']) ? $mascota_detalles['color'] : ''; ?>" required>
-
-    <label for="sexo">Sexo:</label>
-    <select id="sexo" name="sexo" required>
-        <option value="macho" <?php echo (isset($mascota_detalles['sexo']) && $mascota_detalles['sexo'] == 'macho') ? 'selected' : ''; ?>>Macho</option>
-        <option value="hermbra" <?php echo (isset($mascota_detalles['sexo']) && $mascota_detalles['sexo'] == 'hembra') ? 'selected' : ''; ?>>Hembra</option>
-    </select><br>
-    
-    <label for="fechaNacimiento">Fecha de Nacimiento:</label>
-    <input type="date" id="fechaNacimiento" name="fechaNacimiento" value="<?php echo isset($mascota_detalles['fechaNacimiento']) ? $mascota_detalles['fechaNacimiento'] : ''; ?>" required>
-    
-    <button type="submit" name="editar_mascota">Guardar Cambios</button>
-</form>-->
-
-
-</div>
-<script>
-        function descargarTarjeta() {
-            const tarjeta = document.getElementById('tarjeta');
-            
-            html2canvas(tarjeta).then((canvas) => {
-                const imagen = canvas.toDataURL("image/png");
-                const enlace = document.createElement("a");
-                enlace.href = imagen;
-                enlace.download = "TARJETA DEL PACIENTE.png";
-                enlace.click();
-            });
-        }
-    </script>
-
-</div>
-
-<div class="cuadro-mascotas">
-    <h3>OTRAS CONSULTAS DEL PACIENTE</h3>
-    <?php if ($result_mascotas->num_rows > 0): ?>
-        <ul>
-            <?php while ($mascota = $result_mascotas->fetch_assoc()): ?>
-                <li>
-                    <strong>Nombre:</strong> <?php echo $mascota['nombre']; ?>, 
-                 <!--   <strong>Especie:</strong> <?php echo $mascota['especie']; ?>, -->
-                    <a href="detalle-propietario.php?id=<?php echo $id; ?>&mascota_id=<?php echo $mascota['id']; ?>"><button>Más información</button></a>
-                </li>
-            <?php endwhile; ?>
-        </ul>
-    <?php else: ?>
-        <p>No hay mascotas registradas para este propietario.</p>
-    <?php endif; ?>
-</div>
-
-
-
-<!--<button onclick="window.history.back();" class="btn-volver">Regresar</button>-->
-<div class="volver">
-    <a href="ventanas.php" class="btn-volver">volver a gestion de pacientes</a>
-</div>
-
-
 
 </body>
 </html>

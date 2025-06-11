@@ -53,17 +53,12 @@ if (!isset($_SESSION['autenticado']) || $_SESSION['autenticado'] !== true) {
 <div class="button-container">
     <div class="button-group">
         <button onclick="window.location.href='index.php'">Registrar Paciente</button>
-        
     </div>
-    
     <div class="button-group">
-        <button onclick="mostrarBusqueda()">Buscar Paciente</button>
-        
+        <button onclick="mostrarBusqueda()">Buscar Paciente</button> 
     </div>
-
     <div class="button-group">
         <button onclick="window.location.href='ver-clientes.php'">Mostrar Paciente</button>
-        
     </div>
 </div>
 
