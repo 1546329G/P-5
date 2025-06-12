@@ -57,7 +57,7 @@
         // Cierra el modal de detalles de consulta si está abierto
         detallesConsultaModalOverlay.classList.remove('active');
         mascotaModalOverlay.classList.add('active'); // Abre el modal de edición
-        mascotaModalTitle.textContent = `Editar Consulta (ID Mascota: ${mascotaData.id})`;
+        mascotaModalTitle.textContent = `Editar Consulta (pasiente selecionado ID: ${mascotaData.id})`;
         mascotaFormActionType.name = 'editar_mascota';
         mascotaFormActionType.value = '1';
         mascotaIdEdit.value = mascotaData.id; // Cargar el ID de la mascota a editar
@@ -80,7 +80,7 @@
         detallesConsultaEspecialidadSpan.textContent = mascotaData.especialidad;
         detallesConsultaFechaNacimientoSpan.textContent = mascotaData.fechaNacimiento;
         // Configurar el botón "Editar esta consulta" para abrir el modal de edición
-        editThisMascotaButton.onclick = () => openEditMascotaModal(mascotaData);
+        editThisMascotaButton.onclick = () => openEditMascotaModal(mascotaData);ñ
         detallesConsultaModalOverlay.classList.add('active');
     }
     // Event listener para el botón "Agregar Nueva Consulta"

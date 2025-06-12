@@ -315,7 +315,7 @@ $conn->close();
         
         <div class="button-container">
             <button id="openEditPacienteModalBtn">Editar Paciente</button>
-            <a href="descargar_pdf.php?id=<?php echo htmlspecialchars($cliente_data['id']); ?>">Descargar en PDF</a>
+           <button> <a href="descargar_pdf.php?id=<?php echo htmlspecialchars($cliente_data['id']); ?>">Descargar en PDF</a></button    >
             <button onclick="descargarTarjeta()">Descargar imagen</button>
             <button class="open-add-mascota-modal-btn">Agregar Nueva Consulta</button>
         </div>
