@@ -1,28 +1,25 @@
 document.addEventListener("DOMContentLoaded", () => {
     const addForm = document.getElementById("addForm");
-    const clienteIdInput = document.getElementById("cliente_id");
-    const mascotaIdInput = document.getElementById("mascota_id");
+    const pacienteIdInput = document.getElementById("paciente_id"); // Cambiado de cliente_id
+    const consultaIdInput = document.getElementById("consulta_id"); // Cambiado de mascota_id
     const fechaVisitaInput = document.getElementById("fecha_visita");
     const descripcionInput = document.getElementById("descripcion");
 
     const modalOverlay = document.getElementById("modalOverlay");
     const closeModalBtn = document.getElementById("closeModalBtn");
 
-    // Abre el modal para agregar descripción
-    function abrirModal(clienteId, mascotaId) {
-        clienteIdInput.value = clienteId;
-        mascotaIdInput.value = mascotaId;
-        fechaVisitaInput.value = ""; // Limpiar campos
+    function abrirModal(pacienteId, consultaId) { // Cambiados parámetros
+        pacienteIdInput.value = pacienteId;
+        consultaIdInput.value = consultaId;
+        fechaVisitaInput.value = "";
         descripcionInput.value = "";
         modalOverlay.style.display = "block";
     }
 
-    // Cierra el modal
     closeModalBtn.addEventListener("click", () => {
         modalOverlay.style.display = "none";
     });
 
-    // Enviar datos del formulario
     addForm.addEventListener("submit", async (event) => {
         event.preventDefault();
 
@@ -38,35 +35,31 @@ document.addEventListener("DOMContentLoaded", () => {
             if (result.success) {
                 alert(result.success);
                 modalOverlay.style.display = "none";
-
-                // Recargar el historial de visitas
-                cargarHistorial(clienteIdInput.value);
+                cargarHistorial(pacienteIdInput.value); // Cambiado a pacienteIdInput
             } else {
                 alert(result.error);
             }
         } catch (error) {
             console.error("Error:", error);
-            alert("Ocurrió un error al guardar la descripción.");
+            alert("Ocurrió un error al guardar la visita."); // Mensaje actualizado
         }
     });
 
-    // Simulación de cómo abrir el modal (reemplaza esto con tu lógica)
     document.querySelectorAll(".btn-agregar-descripcion").forEach((button) => {
         button.addEventListener("click", (event) => {
-            const clienteId = button.dataset.clienteId; // Agrega estos atributos a los botones
-            const mascotaId = button.dataset.mascotaId;
-            abrirModal(clienteId, mascotaId);
+            const pacienteId = button.dataset.pacienteId; // Cambiado a pacienteId
+            const consultaId = button.dataset.consultaId; // Cambiado a consultaId
+            abrirModal(pacienteId, consultaId); // Cambiados argumentos
         });
     });
 
-    // Función para cargar historial
-    async function cargarHistorial(clienteId) {
+    async function cargarHistorial(pacienteId) { // Cambiado parámetro
         try {
-            const response = await fetch(`php/obtener_historial.php?cliente_id=${clienteId}`);
+            const response = await fetch(`php/obtener_historial.php?paciente_id=${pacienteId}`); // Cambiado a paciente_id
             const data = await response.json();
 
             const historialContainer = document.getElementById("lista-historial");
-            historialContainer.innerHTML = ""; // Limpia el historial anterior
+            historialContainer.innerHTML = "";
 
             data.forEach((item) => {
                 const li = document.createElement("li");
@@ -77,10 +70,4 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Error al cargar historial:", error);
         }
     }
-
-    if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-        echo json_encode(['error' => 'Método no permitido.', 'metodo_recibido' => $_SERVER["REQUEST_METHOD"]]);
-        exit;
-    }
-    
 });

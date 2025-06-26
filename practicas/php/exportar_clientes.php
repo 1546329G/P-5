@@ -12,12 +12,17 @@ if ($conn->connect_error) {
     die("Conexión fallida: " . $conn->connect_error);
 }
 
-$sql = "SELECT * FROM clientes";
+// Establecer el charset a UTF-8 para asegurar la correcta codificación de caracteres especiales
+$conn->set_charset("utf8mb4");
+
+// Cambiado de 'clientes' a 'pacientes'
+$sql = "SELECT id, nombre, direccion, telefono, dni, fechaSeguimientoInicio FROM pacientes";
 $result = $conn->query($sql);
 
 if ($result && $result->num_rows > 0) {
     // Nombre del archivo CSV
-    $filename = "clientes_veterinaria_" . date('Y-m-d') . ".csv";
+    // Cambiado de 'clientes_veterinaria' a 'pacientes_clinica' para mayor coherencia
+    $filename = "pacientes_clinica_" . date('Y-m-d') . ".csv";
 
     header('Content-Type: text/csv; charset=UTF-8');
     header('Content-Disposition: attachment;filename="' . $filename . '"');
@@ -26,12 +31,15 @@ if ($result && $result->num_rows > 0) {
 
     $output = fopen('php://output', 'w');
 
-    fputcsv($output, ['ID', 'Nombre', 'Dirección', 'Teléfono', 'DNI', 'Fecha de Registro']);
+    // Nombres de las columnas para el encabezado del CSV
+    // Cambiado 'Nombre' (asumiendo que 'propietario' era el anterior) a 'Nombre del Paciente'
+    // 'Fecha de Registro' sigue siendo 'fechaSeguimientoInicio' en la DB 'pacientes'
+    fputcsv($output, ['ID', 'Nombre del Paciente', 'Dirección', 'Teléfono', 'DNI', 'Fecha de Seguimiento Inicio']);
 
     while ($row = $result->fetch_assoc()) {
         fputcsv($output, [
             $row['id'],
-            $row['propietario'],
+            $row['nombre'], // Cambiado de $row['propietario'] a $row['nombre']
             $row['direccion'],
             $row['telefono'],
             $row['dni'],
@@ -42,7 +50,7 @@ if ($result && $result->num_rows > 0) {
     fclose($output);
     exit;
 } else {
-    echo "No se encontraron clientes.";
+    echo "No se encontraron pacientes."; // Mensaje actualizado
 }
 $conn->close();
 ?>

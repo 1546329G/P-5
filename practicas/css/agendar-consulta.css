@@ -1,0 +1,92 @@
+/* Estilos del formulario de agregar consulta */
+#form-agregar-consulta-directo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    padding: 10px 0;
+}
+
+/* El textarea y el botón ahora están dentro de .form-group.
+   Necesitamos que el *contenedor* ocupe el ancho completo. */
+.form-group.full-width {
+    grid-column: 1 / -1; /* Ocupa desde la primera columna hasta la última */
+}
+
+/* Estilos para los labels de los campos del formulario (ahora dentro de .form-group) */
+/* Quita esta regla si tus labels se descuadran, ya que display:block en un item de grid no es ideal */
+/* #form-agregar-consulta-directo label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #555;
+    text-align: left;
+    /* grid-column: span 1; -- Esta ya no es necesaria ni aplica directamente
+} */
+
+/* Estilos para todos los campos de entrada de texto, fecha, select y textarea */
+/* Estos se mantienen iguales y funcionan bien dentro de .form-group */
+#form-agregar-consulta-directo input[type="text"],
+#form-agregar-consulta-directo input[type="date"],
+#form-agregar-consulta-directo select,
+#form-agregar-consulta-directo textarea {
+    width: 100%;
+    padding: 11px;
+    margin-bottom: 10px; /* Mantener este margen si lo deseas dentro del form-group */
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* El textarea en sí no necesita la regla grid-column: 1 / -1; */
+#form-agregar-consulta-directo textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* El botón ahora está dentro de .form-group.full-width.button-group. */
+/* Le damos un display flex para centrarlo dentro de su contenedor de ancho completo */
+.form-group.button-group {
+    display: flex;
+    justify-content: center; /* Centra horizontalmente el botón */
+    align-items: center; /* Centra verticalmente si el contenedor tiene altura */
+    margin-top: 20px; /* Margen superior para separarlo del textarea */
+}
+
+#form-agregar-consulta-directo button[type="submit"] {
+    width: auto;
+    max-width: 300px;
+    /* margin: 20px auto 0 auto; -- Estos márgenes ya no son necesarios con flexbox */
+    /* display: block; -- Ya no es necesario con flexbox */
+}
+
+/* RESPONSIVIDAD PARA EL FORMULARIO DE AGREGAR CONSULTA */
+@media (max-width: 768px) {
+    #form-agregar-consulta-directo {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    /* En móviles, los full-width divs se comportarán como cualquier otro form-group */
+    .form-group.full-width {
+        grid-column: auto; /* Anula el 1 / -1; para que se apilen */
+    }
+
+    /* El centrado del botón también se adapta a una columna */
+    .form-group.button-group {
+        margin-top: 15px; /* Ajusta el margen para móviles */
+    }
+}
+
+@media (max-width: 480px) {
+    #form-agregar-consulta-directo {
+        gap: 10px;
+    }
+
+    #form-agregar-consulta-directo input,
+    #form-agregar-consulta-directo select,
+    #form-agregar-consulta-directo textarea {
+        font-size: 0.95rem;
+    }
+}

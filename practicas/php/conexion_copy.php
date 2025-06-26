@@ -3,22 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro en Clinica</title>
-    <link rel="stylesheet" href="../css/conexion.css"> <!-- Archivo CSS -->
+    <title>Registro en Clínica</title>
+    <link rel="stylesheet" href="../css/conexion.css">
 </head>
 <body>
     <div class="container">
         <?php
-        // Conexión a la base de datos
-      $dbHost = "srv805.hstgr.io"; // Host proporcionado por Hostinger
-$dbUser = "u666383048_clinica"; // Usuario de la base de datos
-$dbPass = "9~o0jY:Xw"; // Contraseña del usuario
-$dbName = "u666383048_clinica"; // Nombre de la base de datos
-$dbPort = 3306; // Puerto de la base de datos (generalmente 3306 para MySQL)
+        $dbHost = "srv805.hstgr.io";
+        $dbUser = "u666383048_clinica";
+        $dbPass = "9~o0jY:Xw";
+        $dbName = "u666383048_clinica";
+        $dbPort = 3306;
 
-// Establecer conexión con la base de datos
-// Se incluye el puerto como un parámetro adicional en mysqli
-$conn = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+        $conn = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
         if ($conn->connect_error) {
             die("<div class='message error'>Conexión fallida: " . $conn->connect_error . "</div>");
         }
@@ -26,116 +23,116 @@ $conn = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
         $conn->set_charset("utf8mb4");
 
         // Recibimos los datos de la solicitud POST
-        $propietario = $_POST['propietario'];
-        $direccion = $_POST['direccion'];
-        $telefono = $_POST['telefono'];
-        $paciente = $_POST['paciente'];
-        $fechaNacimiento = $_POST['fechaNacimiento'];
-        $dni = $_POST['dni'];
-        $especie = $_POST['especie'];
-        $raza = $_POST['raza'];
-        $sexo = $_POST['sexo'];
-        $color = $_POST['color'];
-        $fechaSeguimientoInicio = $_POST['fechaSeguimientoInicio'];
-        $descripcion = $_POST['descripcion'];
+        // Datos del paciente principal (antes propietario)
+        $nombre_paciente_principal = $_POST['propietario'] ?? '';
+        $direccion = $_POST['direccion'] ?? '';
+        $telefono = $_POST['telefono'] ?? '';
+        $dni = $_POST['dni'] ?? '';
+        $fechaNacimiento_paciente_principal = $_POST['fechaNacimiento'] ?? ''; // Asumiendo que es la fecha de nacimiento del propietario/paciente principal
+        // Nuevo campo para paciente principal: nacionalidad. Si no viene del form, puedes omitirlo o darle un default
+        $nacionalidad_paciente_principal = $_POST['nacionalidad'] ?? 'Desconocida'; 
 
-        if ($sexo != 'macho' && $sexo != 'hembra') {
-            echo "<div class='message error'>Valor de sexo no válido. Solo se permiten 'masculino' o 'femenino'.</div>";
+        // Datos de la primera consulta (antes mascota)
+        $nombre_consulta = $_POST['paciente'] ?? ''; // Nombre del paciente/consulta
+        $diagnostico_breve = $_POST['especie'] ?? ''; // Usando 'especie' como diagnóstico breve inicial
+        $sexo_consulta = $_POST['sexo'] ?? '';
+        $especialidad = $_POST['raza'] ?? ''; // Usando 'raza' como especialidad inicial
+        $fecha_consulta = $_POST['fechaNacimiento'] ?? ''; // Usando fechaNacimiento del form como fecha de la consulta
+        $diagnostico_detallado = $_POST['descripcion'] ?? ''; // Descripción detallada de la primera consulta
+
+        // Validación de sexo
+        if ($sexo_consulta != 'macho' && $sexo_consulta != 'hembra') {
+            echo "<div class='message error'>Valor de sexo no válido para la consulta. Solo se permiten 'macho' o 'hembra'.</div>";
             exit;
         }
 
-        // Verificar si el cliente ya existe por el DNI
-        $stmt_verificar = $conn->prepare("SELECT id FROM clientes WHERE dni = ?");
-        $stmt_verificar->bind_param("s", $dni);
-        $stmt_verificar->execute();
-        $resultado_cliente = $stmt_verificar->get_result();
+        // Iniciar transacción
+        $conn->begin_transaction();
 
-        if ($resultado_cliente->num_rows > 0) {
-            $cliente_existente = $resultado_cliente->fetch_assoc();
-            $cliente_id = $cliente_existente['id'];
+        try {
+            $paciente_id = 0; // Inicializar cliente_id
 
-            // Insertar la mascota para el cliente existente
-            $stmt_mascota = $conn->prepare("INSERT INTO mascotas (nombre, especie, raza, sexo, color, fechaNacimiento, propietario_id)
-                                            VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt_mascota->bind_param("ssssssi", $paciente, $especie, $raza, $sexo, $color, $fechaNacimiento, $cliente_id);
-
-            if ($stmt_mascota->execute()) {
-                $mascota_id = $conn->insert_id; // Obtener el ID de la mascota insertada
-                echo "<div class='message success'>Mascota registrada con éxito para el cliente existente.</div>";
-
-                // Insertar la descripción en la tabla historial_visitas
-                $fecha_visita = date("Y-m-d"); // O usa la fecha que desees
-                $stmt_historial = $conn->prepare("INSERT INTO historial_visitas (cliente_id, mascota_id, descripcion, fecha_visita)
-                                                  VALUES (?, ?, ?, ?)");
-                $stmt_historial->bind_param("iiss", $cliente_id, $mascota_id, $descripcion, $fecha_visita);
-
-                if ($stmt_historial->execute()) {
-                    echo "<div class='message success'>Descripción registrada correctamente en el historial de visitas.</div>";
-                } else {
-                    echo "<div class='message error'>Error al registrar la descripción: " . $stmt_historial->error . "</div>";
-                }
-            } else {
-                echo "<div class='message error'>Error al registrar la mascota: " . $stmt_mascota->error . "</div>";
+            // Verificar si el paciente principal ya existe por el DNI
+            $stmt_verificar_paciente = $conn->prepare("SELECT id FROM pacientes WHERE dni = ?");
+            if (!$stmt_verificar_paciente) {
+                throw new Exception("Error al preparar verificación de paciente: " . $conn->error);
             }
-        } else {
-            // Registrar un nuevo cliente y su mascota
-            $stmt_cliente = $conn->prepare("INSERT INTO clientes (propietario, direccion, telefono, dni, paciente, fechaNacimiento, especie, raza, sexo, color, fechaSeguimientoInicio)
-                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt_cliente->bind_param("sssssssssss", $propietario, $direccion, $telefono, $dni, $paciente, $fechaNacimiento, $especie, $raza, $sexo, $color, $fechaSeguimientoInicio);
+            $stmt_verificar_paciente->bind_param("s", $dni);
+            $stmt_verificar_paciente->execute();
+            $resultado_paciente = $stmt_verificar_paciente->get_result();
 
-            if ($stmt_cliente->execute()) {
-                $cliente_id = $conn->insert_id;
-
-                // Insertar la mascota para el nuevo cliente
-                $stmt_mascota = $conn->prepare("INSERT INTO mascotas (nombre, especie, raza, sexo, color, fechaNacimiento, propietario_id)
-                                                VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt_mascota->bind_param("ssssssi", $paciente, $especie, $raza, $sexo, $color, $fechaNacimiento, $cliente_id);
-
-                if ($stmt_mascota->execute()) {
-                    $mascota_id = $conn->insert_id; // Obtener el ID de la mascota insertada
-                    echo "<div class='message success'>Cliente y mascota registrados con éxito.</div>";
-
-                    // Insertar la descripción en historial_visitas
-                    $fecha_visita = date("Y-m-d"); // O usa la fecha que desees
-                    $stmt_historial = $conn->prepare("INSERT INTO historial_visitas (cliente_id, mascota_id, descripcion, fecha_visita)
-                                                      VALUES (?, ?, ?, ?)");
-                    $stmt_historial->bind_param("iiss", $cliente_id, $mascota_id, $descripcion, $fecha_visita);
-
-                    if ($stmt_historial->execute()) {
-                        echo "<div class='message success'>Descripción registrada correctamente en el historial de visitas.</div>";
-                    } else {
-                        echo "<div class='message error'>Error al registrar la descripción: " . $stmt_historial->error . "</div>";
-                    }
-                } else {
-                    echo "<div class='message error'>Error al registrar la mascota: " . $stmt_mascota->error . "</div>";
-                }
+            if ($resultado_paciente->num_rows > 0) {
+                $paciente_existente = $resultado_paciente->fetch_assoc();
+                $paciente_id = $paciente_existente['id'];
+                echo "<div class='message info'>Paciente principal existente (ID: {$paciente_id}). Registrando nueva consulta.</div>";
+                // Opcional: Actualizar datos del paciente principal si se modifican
+                // $stmt_update_paciente = $conn->prepare("UPDATE pacientes SET nombre=?, direccion=?, telefono=?, fechaNacimiento=?, nacionalidad=? WHERE id=?");
+                // $stmt_update_paciente->bind_param("sssssi", $nombre_paciente_principal, $direccion, $telefono, $fechaNacimiento_paciente_principal, $nacionalidad_paciente_principal, $paciente_id);
+                // $stmt_update_paciente->execute();
+                // $stmt_update_paciente->close();
             } else {
-                echo "<div class='message error'>Error al registrar el cliente: " . $stmt_cliente->error . "</div>";
+                // Insertar nuevo paciente principal
+                $stmt_insert_paciente = $conn->prepare("INSERT INTO pacientes (nombre, direccion, telefono, dni, fechaNacimiento, nacionalidad) VALUES (?, ?, ?, ?, ?, ?)");
+                if (!$stmt_insert_paciente) {
+                    throw new Exception("Error al preparar inserción de paciente: " . $conn->error);
+                }
+                $stmt_insert_paciente->bind_param("ssssss", $nombre_paciente_principal, $direccion, $telefono, $dni, $fechaNacimiento_paciente_principal, $nacionalidad_paciente_principal);
+                
+                if ($stmt_insert_paciente->execute()) {
+                    $paciente_id = $conn->insert_id;
+                    echo "<div class='message success'>Nuevo paciente principal registrado con éxito (ID: {$paciente_id}).</div>";
+                } else {
+                    throw new Exception("Error al registrar el paciente principal: " . $stmt_insert_paciente->error);
+                }
+                $stmt_insert_paciente->close();
             }
+            $stmt_verificar_paciente->close();
+
+            // Insertar la primera consulta médica asociada al paciente principal
+            $stmt_consulta = $conn->prepare("INSERT INTO consultas_medicas (paciente_id, nombre_consulta, diagnostico_breve, sexo, especialidad, fecha_consulta, diagnostico_detallado) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            if (!$stmt_consulta) {
+                throw new Exception("Error al preparar inserción de consulta médica: " . $conn->error);
+            }
+            $stmt_consulta->bind_param("issssss", $paciente_id, $nombre_consulta, $diagnostico_breve, $sexo_consulta, $especialidad, $fecha_consulta, $diagnostico_detallado);
+
+            if ($stmt_consulta->execute()) {
+                $consulta_id = $conn->insert_id;
+                echo "<div class='message success'>Primera consulta médica registrada con éxito (ID: {$consulta_id}).</div>";
+
+                // Insertar la descripción inicial de la consulta en visitas_detalle
+                $fecha_visita_detalle = date("Y-m-d"); // Fecha de la visita es hoy, o puedes usar $fecha_consulta si es lo mismo
+                $stmt_visita_detalle = $conn->prepare("INSERT INTO visitas_detalle (paciente_id, consulta_id, descripcion, fecha_visita) VALUES (?, ?, ?, ?)");
+                if (!$stmt_visita_detalle) {
+                    throw new Exception("Error al preparar inserción de visitas_detalle: " . $conn->error);
+                }
+                $stmt_visita_detalle->bind_param("iiss", $paciente_id, $consulta_id, $diagnostico_detallado, $fecha_visita_detalle);
+
+                if ($stmt_visita_detalle->execute()) {
+                    echo "<div class='message success'>Descripción de la primera visita registrada correctamente.</div>";
+                } else {
+                    throw new Exception("Error al registrar la descripción de la primera visita: " . $stmt_visita_detalle->error);
+                }
+                $stmt_visita_detalle->close();
+            } else {
+                throw new Exception("Error al registrar la consulta médica: " . $stmt_consulta->error);
+            }
+            $stmt_consulta->close();
+
+            $conn->commit(); // Confirmar la transacción si todo fue bien
+
+        } catch (Exception $e) {
+            $conn->rollback(); // Revertir la transacción si algo falló
+            echo "<div class='message error'>Error en el proceso de registro: " . $e->getMessage() . "</div>";
+            error_log("Error en registro de paciente/consulta: " . $e->getMessage()); // Para depuración en logs
         }
 
-        // Respaldo de la base de datos
-        $host = "localhost";
-        $user = "root";
-        $pass = "";
-        $db = "veterinaria";
-        $backupFile = "C:\\xampp\\htdocs\\practicas\\php\\veterinaria.sql";
-        $mysqldumpPath = "C:\\xampp\\mysql\\bin\\mysqldump";
-
-        $command = "\"$mysqldumpPath\" -h $host -u $user $db > \"$backupFile\"";
-        exec($command, $output, $result);
-
-        if ($result === 0) {
-            echo "<div class='message success'>El respaldo se ha generado correctamente en:<br> <code>$backupFile</code></div>";
-        } else {
-            echo "<div class='message error'>Hubo un error al generar el respaldo. Código de error: $result<br>Salida del comando: " . implode("\n", $output) . "</div>";
-        }
+        $conn->close();
         ?>
-       <div class="container">
-        <div class="volver">
-            <a href="ventanas.php" class="btn-volver">Volver a la Página Principal</a>
+        <div class="container">
+            <div class="volver">
+                <a href="ventanas.php" class="btn-volver">Volver a la Página Principal</a>
+            </div>
         </div>
-    </div>
     </div>
 </body>
 </html>
